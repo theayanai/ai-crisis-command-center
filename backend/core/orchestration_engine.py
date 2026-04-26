@@ -49,10 +49,11 @@ def _deterministic_fallback(signals: list[dict]) -> dict[str, Any]:
     incident = "unknown"
     priority = "medium"
     teams: list[str] = ["supervisor"]
+    confidence = "medium"
 
-    if "fire" in types:
+    if "fire" in types or "heat_alert" in types or "smoke" in types:
         incident = "fire"
-        priority = "critical"
+        priority = "high"
         teams = ["fire", "evacuation"]
     elif "fight" in types or "panic" in types:
         incident = "fight"
@@ -63,11 +64,21 @@ def _deterministic_fallback(signals: list[dict]) -> dict[str, Any]:
         priority = "high"
         teams = ["medical"]
 
+    unique_sources = {
+        str(signal.get("source", "")).strip()
+        for signal in signals
+        if str(signal.get("source", "")).strip()
+    }
+    if len(unique_sources) >= 3:
+        confidence = "high"
+
     return {
         "incident": incident,
         "priority": priority,
+        "severity": priority,
         "teams": teams,
-        "reason": "Fallback mode used because Gemini is unavailable; signals were still unified into a structured response.",
+        "confidence": confidence,
+        "reason": "Fallback mode used because Gemini is unavailable; fragmented signals were still unified into a structured response.",
         "ai_provider": "fallback",
     }
 
@@ -84,22 +95,24 @@ def ai_orchestrate(signals: list[dict]) -> dict[str, Any]:
         model = genai.GenerativeModel(model_name)
 
         prompt = f"""
-You are an AI crisis management system.
+You are an AI crisis orchestration system.
 
-Given these fragmented inputs from multiple systems:
+Inputs:
 {json.dumps(signals, indent=2)}
 
-Determine:
-- incident type (one of: fire, fight, medical, unknown)
-- priority (one of: critical, high, medium, low)
-- required teams (list from: security, fire, medical, evacuation, supervisor)
+Tasks:
+1. Identify incident type (fire, fight, medical, unknown)
+2. Assign severity (critical, high, medium, low)
+3. Decide required teams (security, fire, medical, evacuation, supervisor)
+4. Provide confidence (high, medium, low) based on how many corroborating sources are present
 
-Return only strict JSON in this shape:
+Return only strict JSON:
 {{
   "incident": "...",
-  "priority": "...",
+  "severity": "...",
   "teams": ["..."],
-  "reason": "one sentence"
+  "confidence": "...",
+  "reason": "one concise sentence"
 }}
 """.strip()
 
@@ -107,8 +120,9 @@ Return only strict JSON in this shape:
         payload = _extract_json(response.text or "")
 
         incident = str(payload.get("incident", "unknown")).lower().strip()
-        priority = str(payload.get("priority", "medium")).lower().strip()
+        priority = str(payload.get("severity", payload.get("priority", "medium"))).lower().strip()
         teams = payload.get("teams", ["supervisor"])
+        confidence = str(payload.get("confidence", "medium")).lower().strip()
 
         if not isinstance(teams, list):
             teams = ["supervisor"]
@@ -120,7 +134,9 @@ Return only strict JSON in this shape:
         return {
             "incident": incident,
             "priority": priority,
+            "severity": priority,
             "teams": normalized_teams,
+            "confidence": confidence,
             "reason": str(payload.get("reason", "AI orchestration completed.")).strip(),
             "ai_provider": "gemini",
         }

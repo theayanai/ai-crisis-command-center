@@ -54,7 +54,7 @@ def orchestrate_incident(incident_id: int):
     decision = decide_action(
         unified_type,
         settings,
-        priority_override=ai_result.get("priority"),
+        priority_override=ai_result.get("severity", ai_result.get("priority")),
         teams_override=ai_result.get("teams"),
     )
     staff = get_staff_data()
@@ -73,7 +73,8 @@ def orchestrate_incident(incident_id: int):
 
     timeline = [
         {"stage": "Signals received", "status": "complete", "detail": f"{len(incoming_signals)} fragmented inputs captured"},
-        {"stage": "Incident unified", "status": "complete", "detail": f"AI hub classified incident as {unified_type.upper()}"},
+        {"stage": "Incident unified", "status": "complete", "detail": f"AI hub classified incident as {unified_type.upper()} ({decision['priority'].upper()} PRIORITY)"},
+        {"stage": "AI reasoning", "status": "complete", "detail": f"Decision powered by AI reasoning with {ai_result.get('confidence', 'medium').upper()} confidence"},
         {"stage": "Staff assigned", "status": "active", "detail": f"{len(assigned_staff)} nearest available staff selected"},
         {"stage": "Response active", "status": "pending", "detail": "Structured response now coordinated from one command layer"},
     ]
@@ -86,6 +87,8 @@ def orchestrate_incident(incident_id: int):
         "ai_orchestration": {
             "provider": ai_result.get("ai_provider", "unknown"),
             "reason": ai_result.get("reason", ""),
+            "confidence": ai_result.get("confidence", "medium"),
+            "decision_note": "Decision powered by AI reasoning",
         },
         "signal_unification": {
             "unified_incident_type": unified_type,
@@ -95,7 +98,7 @@ def orchestrate_incident(incident_id: int):
                 f"{signal.get('source', 'Unknown')} -> {str(signal.get('type', 'unknown')).upper()} @ {signal.get('location', incident['zone'])}"
                 for signal in incoming_signals
             ],
-            "after": f"AI HUB -> Incident classified: {unified_type.upper()}",
+            "after": f"AI HUB -> {unified_type.upper()} INCIDENT ({decision['priority'].upper()} PRIORITY)",
         },
         "assigned_staff": assigned_staff,
         "route": {

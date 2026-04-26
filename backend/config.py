@@ -12,13 +12,14 @@ settings = {
     "incident_catalog": {
         1: {
             "id": 1,
-            "type": "fight",
-            "title": "Fight in Lobby A",
+            "type": "composite",
+            "title": "Escalation in Lobby A",
             "zone": "Lobby A",
             "priority": "high",
             "severity": 0.82,
             "incoming_signals": [
                 {"source": "CCTV", "type": "fight", "location": "Lobby A"},
+                {"source": "Fire Sensor", "type": "heat_alert", "location": "Lobby A"},
                 {"source": "Manual Alert", "type": "panic", "location": "Lobby A"},
             ],
         },

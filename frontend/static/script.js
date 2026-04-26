@@ -34,7 +34,7 @@ function renderScenarios() {
 
 function renderResponse(response) {
   document.getElementById('incident-title').textContent = response.incident.title;
-  document.getElementById('incident-meta').textContent = `${response.signal_unification.unified_incident_type.toUpperCase()} · ${response.incident.zone} · Priority ${response.decision.priority}`;
+  document.getElementById('incident-meta').textContent = `${response.signal_unification.unified_incident_type.toUpperCase()} INCIDENT · ${response.incident.zone} · ${response.decision.priority.toUpperCase()} PRIORITY`;
 
   document.getElementById('unified-sources').textContent = `Unified from ${response.signal_unification.source_count} sources -> ${response.signal_unification.source_label}`;
   document.getElementById('fragmented-list').innerHTML = response.signal_unification.before
@@ -81,6 +81,8 @@ function renderResponse(response) {
 
   document.getElementById('explanation').textContent = response.explanation;
   document.getElementById('ai-provider').textContent = `AI brain: ${response.ai_orchestration.provider.toUpperCase()}`;
+  document.getElementById('ai-decision-note').textContent = response.ai_orchestration.decision_note || 'Decision powered by AI reasoning';
+  document.getElementById('ai-confidence').textContent = `Confidence: ${(response.ai_orchestration.confidence || 'medium').toUpperCase()} (based on multiple signals)`;
   document.getElementById('ai-reason').textContent = response.ai_orchestration.reason || '';
   document.getElementById('action-plan').innerHTML = response.action_plan
     .map(
