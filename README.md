@@ -5,7 +5,7 @@
 ![AI](https://img.shields.io/badge/AI-Gemini-blue?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)
 
-🛡️🤖 AI-powered orchestration system that unifies fragmented emergency signals into structured, real-time crisis response.
+🛡️🤖 AI-powered crisis orchestration system that unifies fragmented emergency signals into structured, real-time response with intelligent severity scoring, automated escalation, and AI-driven communication.
 
 ---
 
@@ -19,19 +19,17 @@ This project aligns with the United Nations Sustainable Development Goals:
 - **SDG 3 – Good Health & Well-being**  
   Enabling faster emergency medical and safety response  
 
-This system transforms fragmented emergency infrastructure into a centralized AI-driven command center.
-
 ---
 
 ## 🧠 Problem  
 
-In real-world hospitality environments:
+In real-world environments (hotels, campuses, malls):
 
 - CCTV systems operate independently  
-- Fire alarms function separately  
+- Fire sensors and alarms work in isolation  
 - Staff communication is disconnected  
 
-👉 This **fragmentation causes delayed and chaotic response** during emergencies.
+👉 This fragmentation leads to **delayed, uncoordinated, and inefficient emergency response**.
 
 ---
 
@@ -39,17 +37,17 @@ In real-world hospitality environments:
 
 We built an **AI-powered Crisis Command Center** that:
 
-- Aggregates signals from multiple systems  
-- Uses AI reasoning to understand the situation  
-- Orchestrates structured response in real time  
+- Aggregates signals from multiple sources  
+- Uses AI reasoning (Gemini) to understand context  
+- Assigns severity (1–10 scale)  
+- Determines impact scope (individual vs mass)  
+- Orchestrates response and communication in real time  
 
 ---
 
 ## 🔥 Core Innovation  
 
-Instead of detecting emergencies, we:
-
-> **Unify fragmented systems into a centralized AI orchestration hub**
+> **We don’t detect emergencies — we orchestrate fragmented systems into coordinated response.**
 
 ---
 
@@ -60,9 +58,11 @@ Multi-source Signals (CCTV + Sensors + Manual Input)
                 ↓
         AI Orchestration (Gemini)
                 ↓
-      Structured Decision Output
+   Severity Scoring + Impact Analysis (1–10)
                 ↓
-   Staff Assignment + Routing Engine
+   Response Planning + Staff Assignment
+                ↓
+     Broadcast & Notification System
                 ↓
          Real-time Dashboard UI
 ```
@@ -73,59 +73,106 @@ Multi-source Signals (CCTV + Sensors + Manual Input)
 
 We use **Google Gemini** as the reasoning engine to:
 
-- Combine multiple signals  
+- Combine fragmented signals  
 - Infer incident type  
-- Assign priority level  
-- Decide required response teams  
+- Assign severity score (1–10)  
+- Determine impact (individual vs multi-person)  
+- Generate human-readable emergency briefings  
 
-### Example  
+---
 
-**Input signals:**
-- CCTV → Fight detected  
-- Fire Sensor → Heat alert  
-- Manual → Panic alert  
+## 🧠 AI Crisis Briefing (Key Feature)
 
-**AI Output:**
-```json
-{
-  "incident": "fire",
-  "priority": "high",
-  "teams": ["fire_team", "security"]
-}
+The system generates real-time instructions for responders:
+
+```
+🚨 Emergency Briefing
+
+Incident: FIRE  
+Location: Room 101  
+
+Severity: 9/10 (High Risk)  
+Impact: Multi-person risk  
+
+AI Reasoning:
+Multiple signals (fire sensor + smoke detection) indicate an active fire hazard.
+
+Response Plan:
+- Fire Response Team dispatched  
+- Security assigned for evacuation  
+
+Action Required:
+Immediate evacuation and containment.
 ```
 
-👉 This demonstrates **multi-signal reasoning**, not simple rule-based logic.
+---
+
+## 🚨 Intelligent Escalation System  
+
+The AI assigns severity levels:
+
+| Severity | Meaning |
+|--------|--------|
+| 1–3 | Minor / Individual |
+| 4–6 | Moderate |
+| 7–8 | Serious |
+| 9–10 | Critical (Mass Impact) |
+
+---
+
+### 🚨 Automatic Broadcast Trigger  
+
+If severity ≥ 9:
+
+- Alerts sent to all occupants  
+- Emergency notifications triggered  
+- Response escalation activated  
+
+```
+🚨 BROADCAST ALERT ACTIVATED  
+All nearby occupants notified  
+Evacuation instructions issued  
+```
 
 ---
 
 ## ✨ Key Features  
 
 ### 🧩 Multi-Signal Fusion  
-Combines inputs from different systems into a unified context  
+Combines inputs from CCTV, sensors, and manual alerts  
 
 ### 🧠 AI Decision Engine  
-Uses Gemini for real-time reasoning and prioritization  
+Gemini-powered reasoning for incident understanding  
+
+### 📊 Severity Scoring (1–10)  
+Quantifies risk and impact  
+
+### 🗣️ AI Emergency Communication  
+Generates real-time responder instructions  
+
+### 🚨 Smart Broadcast System  
+Escalates alerts for high-risk scenarios  
 
 ### 👥 Smart Staff Assignment  
-Automatically assigns nearest and relevant responders  
+Assigns nearest responders  
 
-### 🗺️ Dynamic Routing  
-Provides safe evacuation or response paths  
+### 🗺️ Routing Engine  
+Provides safe evacuation paths  
 
 ### 📊 Unified Dashboard  
-Displays alerts, decisions, and actions in one interface  
-
-### 📜 AI Explanation Layer  
-Generates human-readable reasoning for every decision  
+Displays all actions in real time  
 
 ---
 
 ## 🎬 Demo Flow  
 
-1. Multiple signals triggered  
+1. Multiple signals triggered (CCTV + Sensor + Manual)  
 2. AI processes and identifies incident  
-3. System assigns staff and route  
-4. Dashboard updates in real time  
+3. Severity score assigned  
+4. AI generates emergency briefing  
+5. Staff assigned and routes generated  
+6. Broadcast triggered (if high severity)  
+7. Dashboard updates in real time  
 
 ---
 
@@ -138,13 +185,13 @@ We conducted usability testing with 3 users:
 → Added multi-signal display  
 
 - “AI decision wasn’t obvious”  
-→ Improved explanation panel  
+→ Improved AI explanation panel  
 
 - “Actions didn’t feel interactive”  
 → Added clickable action simulation  
 
 ### Result:
-Improved clarity, realism, and user experience  
+Improved clarity, realism, and usability  
 
 ---
 
@@ -188,34 +235,35 @@ http://localhost:8000
 Designed for deployment on:
 
 - **Google Cloud Run** (scalable backend)  
-- **Google AI (Gemini API)** for reasoning  
+- **Google Gemini API** for AI reasoning  
 
 ---
 
 ## ⚠️ Limitations  
 
-- Uses simulated inputs (not live CCTV)  
-- AI decisions depend on prompt quality  
-- Not a full production emergency system  
+- Uses simulated inputs (no live CCTV yet)  
+- AI responses depend on prompt quality  
+- Prototype-level implementation  
 
 ---
 
 ## 🔮 Future Improvements  
 
 - Real-time sensor integration  
-- Video-based incident detection  
+- Video-based AI detection  
+- Mobile emergency alerts  
 - Multi-building coordination  
-- Mobile alert system  
+- Integration with emergency services  
 
 ---
 
 ## 🏆 Why This Matters  
 
-Modern systems are fragmented.
+Modern emergency systems are fragmented.
 
 This project proves:
 
-> 🔥 AI can transform chaos into coordinated response
+> 🔥 AI can transform chaos into structured, intelligent crisis response  
 
 ---
 
