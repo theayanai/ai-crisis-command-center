@@ -1,4 +1,4 @@
-    <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -12,8 +12,8 @@
   <div class="ai-cursor-trail"></div>
   
   <div class="command-tabs">
-    <button class="tab-btn active" onclick="switchTab(event, 'dashboard-view')">🗺️ Live Dashboard</button>
-    <button class="tab-btn" onclick="switchTab(event, 'logs-view')">🤖 AI Telemetry Logs</button>
+    <button class="tab-btn active" onclick="switchTab('dashboard-view', this)">🗺️ Live Dashboard</button>
+    <button class="tab-btn" onclick="switchTab('logs-view', this)">🤖 AI Telemetry Logs</button>
     <div class="sdg-badge">
       🌍 SDG 11 &amp; SDG 3 Aligned System
     </div>
@@ -22,7 +22,7 @@
   <div id="logs-view" class="tab-content" style="display: none;">
     <h2>Raw AI Signal Ingestion</h2>
     <div id="raw-logs-container" class="terminal-box">
-      <p>&gt; System standing by for incoming telemetry...</p>
+      <p style="color: #8899aa;">&gt; System standing by for incoming telemetry...</p>
     </div>
   </div>
 

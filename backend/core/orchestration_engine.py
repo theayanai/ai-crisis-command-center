@@ -2,28 +2,22 @@ import json
 import os
 import re
 from typing import Any
-from dotenv import load_dotenv, find_dotenv
+from dotenv import load_dotenv
 import google.generativeai as genai
 
-# 🔥 find_dotenv() guarantees it finds your API key regardless of what folder you run the server from
-load_dotenv(find_dotenv())
+load_dotenv()
 
 def ai_orchestrate(signals: list[dict]) -> dict[str, Any]:
     api_key = os.getenv("GEMINI_API_KEY")
     
     if not api_key:
-        error_msg = "CRITICAL ERROR: GEMINI_API_KEY is missing from your .env file!"
-        print(f"🚨 {error_msg}")
-        return _deterministic_fallback(signals, reason_msg=error_msg)
+        print("🚨 CRITICAL ERROR: GEMINI_API_KEY is missing from your .env file!")
+        return _deterministic_fallback(signals)
 
     try:
         genai.configure(api_key=api_key)
-        
-        # 🔥 FORCING JSON OUTPUT: This prevents parsing crashes and guarantees the AI works
-        model = genai.GenerativeModel(
-            "gemini-1.5-flash",
-            generation_config={"response_mime_type": "application/json"}
-        )
+        # Using standard model config to prevent version mismatch crashes
+        model = genai.GenerativeModel("gemini-1.5-flash")
 
         prompt = f"""
         You are the core intelligence of a military-grade AI Crisis Command Center.
@@ -35,14 +29,15 @@ def ai_orchestrate(signals: list[dict]) -> dict[str, Any]:
         3. Decide required teams (security, fire, medical, evacuation).
         4. PREDICTIVE MODELING: Predict how this threat will escalate in the next 15 minutes.
         
-        Return ONLY a raw JSON object with these exact keys:
+        Return ONLY a raw JSON object. NO markdown, NO backticks. Use these exact keys:
         "incident" (string), "severity" (string), "teams" (array of strings), "confidence" (string), "reason" (string), "prediction" (string).
         """
 
+        print("\n⏳ Sending data to Gemini AI...")
         response = model.generate_content(prompt)
         raw_text = response.text.strip()
         
-        # 🔥 FAIL-SAFE: If Gemini still returns markdown formatting, this regex strips it out automatically
+        # BULLETPROOF FIX: Strip away markdown backticks if Gemini disobeys instructions
         if raw_text.startswith("```"):
             raw_text = re.sub(r"^```(?:json)?\n?", "", raw_text)
             raw_text = re.sub(r"\n?```$", "", raw_text)
@@ -61,10 +56,8 @@ def ai_orchestrate(signals: list[dict]) -> dict[str, Any]:
             "ai_provider": "gemini",
         }
     except Exception as e:
-        # 🔥 This passes the exact failure reason directly to your frontend UI
-        error_msg = f"GEMINI ERROR: {str(e)}"
-        print(f"🚨 {error_msg}") 
-        return _deterministic_fallback(signals, reason_msg=error_msg)
+        print(f"🚨 GEMINI ERROR: {str(e)}")
+        return _deterministic_fallback(signals, reason_msg=f"GEMINI ERROR: {str(e)}")
 
 def _deterministic_fallback(signals: list[dict], reason_msg: str = "CONNECTION FAILED: Using standard emergency protocol.") -> dict[str, Any]:
     return {

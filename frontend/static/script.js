@@ -33,6 +33,11 @@ function renderScenarios() {
 }
 
 function renderResponse(response) {
+  const severity = Number(response.severity ?? response.decision?.severity ?? 0);
+  const impact = response.impact ?? response.decision?.impact ?? 'unknown';
+  const isBroadcast = Boolean(response.broadcast ?? response.decision?.broadcast);
+  const confidenceLabel = severity >= 9 ? 'VERY HIGH' : severity >= 7 ? 'HIGH' : severity >= 5 ? 'MEDIUM' : 'LOW';
+
   document.getElementById('incident-title').textContent = response.incident.title;
   document.getElementById('incident-meta').textContent = `${response.signal_unification.unified_incident_type.toUpperCase()} INCIDENT · ${response.incident.zone} · ${response.decision.priority.toUpperCase()} PRIORITY`;
 
@@ -79,10 +84,10 @@ function renderResponse(response) {
     )
     .join('');
 
-  document.getElementById('explanation').innerHTML = `<strong>AI Reasoning:</strong><br/>Multiple signals (CCTV + Fire Sensor + Manual Alert)<br/>indicate a high probability of fire hazard.<br/>Evacuation and fire response teams are deployed.`;
+  document.getElementById('explanation').innerHTML = `<strong>AI Briefing:</strong><br/>${escapeText(response.briefing || response.ai_orchestration.reason || 'No briefing available.').replaceAll('\n', '<br/>')}`;
   document.getElementById('ai-provider').textContent = `AI brain: ${response.ai_orchestration.provider.toUpperCase()}`;
-  document.getElementById('ai-decision-note').textContent = 'AI Decision Engine Active';
-  document.getElementById('ai-confidence').innerHTML = `<strong>Confidence:</strong> HIGH (multi-signal confirmation)`;
+  document.getElementById('ai-decision-note').textContent = `AI Decision Engine Active · Severity ${severity}/10 · Impact ${impact}`;
+  document.getElementById('ai-confidence').innerHTML = `<strong>Confidence:</strong> ${confidenceLabel} · Broadcast ${isBroadcast ? 'ON' : 'OFF'}`;
   document.getElementById('ai-reason').textContent = response.ai_orchestration.reason || '';
   document.getElementById('action-plan').innerHTML = response.action_plan
     .map(
@@ -110,14 +115,70 @@ async function loadOrchestration(incidentId) {
   state.activeIncidentId = String(incidentId);
   renderScenarios();
 
-  const response = await fetch(`/api/orchestrate/${incidentId}`);
-  const payload = await response.json();
-  renderResponse(payload);
+  try {
+    const response = await fetch(`/api/orchestrate/${incidentId}`);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const payload = await response.json();
+    renderResponse(payload);
+    updateTelemetryLogs(payload);
+  } catch (error) {
+    document.getElementById('incident-title').textContent = 'Unable to orchestrate this incident';
+    document.getElementById('incident-meta').textContent = 'Backend unavailable or AI timeout occurred. Using safe standby mode.';
+    document.getElementById('status').textContent = 'System fallback active. Retry scenario.';
+  }
 }
 
 loadScenarios().catch(() => {
   document.getElementById('scenario-list').innerHTML = '<div class="responder-card">Unable to load simulated incidents.</div>';
 });
+
+function setupActionButtons() {
+  const statusEl = document.getElementById('status');
+
+  document.querySelectorAll('.action-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const action = btn.innerText.trim();
+
+      if (statusEl) {
+        statusEl.innerText = `${action} -> Sending...`;
+      }
+
+      try {
+        const response = await fetch('/execute-action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action }),
+        });
+
+        const payload = await response.json();
+
+        if (statusEl) {
+          statusEl.innerText = payload.message || `${action} -> Executed`;
+        }
+
+        updateTelemetryLogs({
+          event_type: 'manual_action',
+          action,
+          result: payload,
+        });
+      } catch (error) {
+        if (statusEl) {
+          statusEl.innerText = `${action} -> Failed`;
+        }
+
+        updateTelemetryLogs({
+          event_type: 'manual_action',
+          action,
+          result: { status: 'failed', message: `${action} -> Failed` },
+        });
+      }
+    });
+  });
+}
+
+setupActionButtons();
 
 (() => {
   const selectRevealNodes = () =>
@@ -207,8 +268,8 @@ loadScenarios().catch(() => {
   setupRevealObserver();
 })();
 
-function switchTab(event, tabId) {
-  // Hide all tabs
+function switchTab(tabId, clickedButton) {
+  // Hide all tabs safely
   document.querySelectorAll('.tab-content').forEach((tab) => {
     tab.style.display = 'none';
   });
@@ -217,13 +278,68 @@ function switchTab(event, tabId) {
     btn.classList.remove('active');
   });
 
-  // Show the selected tab
+  // Show the selected tab and restore grid layout if needed
   const selectedTab = document.getElementById(tabId);
   if (tabId === 'dashboard-view') {
     selectedTab.style.display = 'grid'; // Restore grid layout to prevent UI breaking
   } else {
     selectedTab.style.display = 'block';
   }
-  // Highlight the clicked button
-  event.currentTarget.classList.add('active');
+
+  // Highlight the clicked button safely
+  if (clickedButton) {
+    clickedButton.classList.add('active');
+  }
+}
+
+function updateTelemetryLogs(data) {
+  const logContainer = document.getElementById('raw-logs-container');
+  if (!logContainer) return;
+
+  const timestamp = new Date().toLocaleTimeString();
+  const isActionEvent = data.event_type === 'manual_action';
+
+  if (isActionEvent) {
+    const action = escapeText(data.action || 'Unknown Action');
+    const status = escapeText(data.result?.status || 'unknown');
+    const message = escapeText(data.result?.message || 'No status message');
+
+    const actionHTML = `
+      <div class="telemetry-entry">
+        <div class="telemetry-head">[${timestamp}] ⚙️ MANUAL ACTION EVENT</div>
+        <div class="telemetry-line">>> ACTION: ${action}</div>
+        <div class="telemetry-line">>> STATUS: ${status.toUpperCase()}</div>
+        <div class="telemetry-line telemetry-muted">>> MESSAGE: ${message}</div>
+      </div>
+    `;
+
+    logContainer.innerHTML = actionHTML + logContainer.innerHTML;
+    return;
+  }
+
+  const rawSignals = escapeText(JSON.stringify(data.incoming_signals || [], null, 2));
+  const aiReasoning = escapeText(JSON.stringify(data.ai_orchestration || {}, null, 2));
+  const unifiedType = escapeText((data.signal_unification?.unified_incident_type || 'UNKNOWN').toUpperCase());
+  const staffCount = Array.isArray(data.assigned_staff) ? data.assigned_staff.length : 0;
+  const severity = data.severity ?? data.decision?.severity ?? 'N/A';
+  const impact = escapeText(data.impact ?? data.decision?.impact ?? 'unknown');
+  const broadcast = (data.broadcast ?? data.decision?.broadcast) ? 'ON' : 'OFF';
+
+  const logHTML = `
+    <div class="telemetry-entry">
+      <div class="telemetry-head">[${timestamp}] 📡 SYSTEM TRIGGERED: Telemetry Ingestion Initiated</div>
+
+      <div class="telemetry-line telemetry-alert">>> RAW SENSOR DATA INGESTED:</div>
+      <pre class="telemetry-block telemetry-alert">${rawSignals}</pre>
+
+      <div class="telemetry-line telemetry-warn">>> GEMINI NEURAL FUSION: Executing analysis...</div>
+      <pre class="telemetry-block telemetry-ok">${aiReasoning}</pre>
+
+      <div class="telemetry-line telemetry-ok">>> UNIFIED DECISION: ${unifiedType} THREAT DETECTED.</div>
+      <div class="telemetry-line telemetry-muted">>> ROUTING ENGINE: Generated ${staffCount} staff assignments with dynamic hazard bypass.</div>
+      <div class="telemetry-line telemetry-muted">>> SEVERITY: ${severity}/10 | IMPACT: ${impact} | BROADCAST: ${broadcast}</div>
+    </div>
+  `;
+
+  logContainer.innerHTML = logHTML + logContainer.innerHTML;
 }
