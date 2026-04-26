@@ -7,20 +7,52 @@
   <link rel="stylesheet" href="/static/styles.css" />
 </head>
 <body>
+  <div class="ai-cursor"></div>
+  <div class="ai-cursor-trail"></div>
   <main class="dashboard">
-    <section class="hero hero-grid">
-      <div>
-        <p class="eyebrow">Multimodal safety OS</p>
-        <h1>AI Crisis Command Center</h1>
-        <p class="summary">A centralized orchestration hub that unifies simulated incident inputs, staff routing, response actions, and evacuation guidance into one deterministic command layer.</p>
+    <section class="hero-card">
+      <div class="hero-grid">
+        <div>
+          <div class="hero-kicker">Multimodal Safety OS</div>
+          <h1 class="hero-title">Unify. Coordinate. Respond.</h1>
+          <p class="summary">A centralized orchestration hub that unifies fragmented CCTV, manual, and sensor inputs into one structured crisis response layer.</p>
+        </div>
+        <div class="hero-stats">
+          <div class="stat-box">
+            <div class="stat-label">Input channels</div>
+            <div class="stat-value">3</div>
+            <div class="stat-note">CCTV, manual alert, fire/health sensors.</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">AI layer</div>
+            <div class="stat-value">Gemini</div>
+            <div class="stat-note">Signal unification and explanation.</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Output</div>
+            <div class="stat-value">Live</div>
+            <div class="stat-note">Staff, route, actions, timeline.</div>
+          </div>
+        </div>
       </div>
-      <div class="selector panel panel-compact">
+    </section>
+
+    <section class="glass-panel control-panel reveal">
+      <div class="section-title">Operational Flow</div>
+      <div class="section-note">Keep focus on one mission: unify fragmented crisis signals into structured response.</div>
+      <div class="flow-grid">
+        <div class="flow-step"><strong>1.</strong>Pick a simulated incident.</div>
+        <div class="flow-step"><strong>2.</strong>Ingest fragmented multi-source signals.</div>
+        <div class="flow-step"><strong>3.</strong>Gemini classifies incident and priority.</div>
+        <div class="flow-step"><strong>4.</strong>System assigns staff and route deterministically.</div>
+      </div>
+      <div class="scenario-block">
         <h2>Simulated incidents</h2>
         <div id="scenario-list" class="scenario-list"></div>
       </div>
     </section>
 
-    <section class="grid">
+    <section class="dashboard-shell">
       <article class="panel full-span">
         <h2>Input Layer -> AI Orchestration Hub</h2>
         <p class="panel-label">Before (fragmented) and after (unified structured response)</p>
@@ -61,7 +93,9 @@
 
       <article class="panel full-span">
         <h2>AI-style explanation</h2>
+        <p id="ai-provider" class="panel-label"></p>
         <p id="explanation" class="explanation"></p>
+        <p id="ai-reason" class="panel-label"></p>
         <div id="action-plan" class="action-plan"></div>
       </article>
     </section>

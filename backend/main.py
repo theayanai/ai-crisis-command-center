@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from backend.config import settings
 from backend.core.decision_engine import decide_action
 from backend.core.incident_simulator import sample_incidents
-from backend.core.orchestration_engine import orchestrate, summarize_sources
+from backend.core.orchestration_engine import ai_orchestrate, explain_decision, summarize_sources
 from backend.core.routing_engine import generate_route, route_staff
 from backend.services.alert_service import create_alert
 from backend.services.staff_service import get_staff_data
@@ -47,13 +47,29 @@ def orchestrate_incident(incident_id: int):
         raise HTTPException(status_code=404, detail="Incident not found")
 
     incoming_signals = incident.get("incoming_signals", [])
-    unified_type = orchestrate(incoming_signals)
+    ai_result = ai_orchestrate(incoming_signals)
+    unified_type = ai_result["incident"]
     source_summary = summarize_sources(incoming_signals)
 
-    decision = decide_action(unified_type, settings)
+    decision = decide_action(
+        unified_type,
+        settings,
+        priority_override=ai_result.get("priority"),
+        teams_override=ai_result.get("teams"),
+    )
     staff = get_staff_data()
     assigned_staff = route_staff(staff, incident["zone"], decision["required_teams"])
     response_route = generate_route(unified_type, settings)
+
+    ai_explanation = explain_decision(
+        {
+            "signals": incoming_signals,
+            "incident": unified_type,
+            "priority": decision["priority"],
+            "teams": decision["required_teams"],
+            "location": incident["zone"],
+        }
+    )
 
     timeline = [
         {"stage": "Signals received", "status": "complete", "detail": f"{len(incoming_signals)} fragmented inputs captured"},
@@ -67,6 +83,10 @@ def orchestrate_incident(incident_id: int):
         "alert": create_alert(f"{incident['title']} - {incident['zone']}", level=decision["priority"]),
         "decision": decision,
         "incoming_signals": incoming_signals,
+        "ai_orchestration": {
+            "provider": ai_result.get("ai_provider", "unknown"),
+            "reason": ai_result.get("reason", ""),
+        },
         "signal_unification": {
             "unified_incident_type": unified_type,
             "source_count": source_summary["count"],
@@ -84,7 +104,7 @@ def orchestrate_incident(incident_id: int):
         },
         "action_plan": decision["action_plan"],
         "timeline": timeline,
-        "explanation": decision["explanation"],
+        "explanation": ai_explanation,
     }
 
     return response

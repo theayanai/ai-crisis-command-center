@@ -80,6 +80,8 @@ function renderResponse(response) {
     .join('');
 
   document.getElementById('explanation').textContent = response.explanation;
+  document.getElementById('ai-provider').textContent = `AI brain: ${response.ai_orchestration.provider.toUpperCase()}`;
+  document.getElementById('ai-reason').textContent = response.ai_orchestration.reason || '';
   document.getElementById('action-plan').innerHTML = response.action_plan
     .map(
       (step) => `
@@ -114,3 +116,91 @@ async function loadOrchestration(incidentId) {
 loadScenarios().catch(() => {
   document.getElementById('scenario-list').innerHTML = '<div class="responder-card">Unable to load simulated incidents.</div>';
 });
+
+(() => {
+  const selectRevealNodes = () =>
+    document.querySelectorAll(
+      '.hero-card, .glass-panel, .dashboard-shell, .panel, .stat-box, .flow-step, .scenario-button, .responder-card, .timeline-item, .action-item',
+    );
+
+  const setupHeroTilt = () => {
+    const hero = document.querySelector('.hero-card');
+    if (!hero) {
+      return;
+    }
+
+    const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+    hero.addEventListener('mousemove', (event) => {
+      const rect = hero.getBoundingClientRect();
+      const x = (event.clientX - rect.left) / rect.width;
+      const y = (event.clientY - rect.top) / rect.height;
+
+      const tiltY = clamp((x - 0.5) * 10, -5, 5);
+      const tiltX = clamp((0.5 - y) * 8, -4, 4);
+
+      hero.style.setProperty('--tilt-x', `${tiltX}deg`);
+      hero.style.setProperty('--tilt-y', `${tiltY}deg`);
+    });
+
+    hero.addEventListener('mouseleave', () => {
+      hero.style.setProperty('--tilt-x', '0deg');
+      hero.style.setProperty('--tilt-y', '0deg');
+    });
+  };
+
+  const setupPointerSystem = () => {
+    const cursor = document.querySelector('.ai-cursor');
+    const trail = document.querySelector('.ai-cursor-trail');
+    let mouseX = window.innerWidth / 2;
+    let mouseY = window.innerHeight / 2;
+    let trailX = mouseX;
+    let trailY = mouseY;
+
+    document.addEventListener('mousemove', (event) => {
+      mouseX = event.clientX;
+      mouseY = event.clientY;
+
+      const root = document.documentElement;
+      root.style.setProperty('--pointer-x', ((mouseX / window.innerWidth) * 100).toFixed(2));
+      root.style.setProperty('--pointer-y', ((mouseY / window.innerHeight) * 100).toFixed(2));
+    });
+
+    const animateCursor = () => {
+      if (cursor) {
+        cursor.style.left = `${mouseX}px`;
+        cursor.style.top = `${mouseY}px`;
+      }
+
+      if (trail) {
+        trailX += (mouseX - trailX) * 0.15;
+        trailY += (mouseY - trailY) * 0.15;
+        trail.style.left = `${trailX}px`;
+        trail.style.top = `${trailY}px`;
+      }
+
+      requestAnimationFrame(animateCursor);
+    };
+
+    animateCursor();
+  };
+
+  const setupRevealObserver = () => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+          }
+        });
+      },
+      { threshold: 0.2, rootMargin: '0px 0px -8% 0px' },
+    );
+
+    selectRevealNodes().forEach((node) => observer.observe(node));
+  };
+
+  setupHeroTilt();
+  setupPointerSystem();
+  setupRevealObserver();
+})();

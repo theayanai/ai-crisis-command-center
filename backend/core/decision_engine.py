@@ -1,4 +1,9 @@
-def decide_action(incident_type: str, settings: dict) -> dict:
+def decide_action(
+    incident_type: str,
+    settings: dict,
+    priority_override: str | None = None,
+    teams_override: list[str] | None = None,
+) -> dict:
     normalized_type = incident_type.lower().strip()
 
     decision_matrix = {
@@ -46,8 +51,8 @@ def decide_action(incident_type: str, settings: dict) -> dict:
 
     return {
         "incident_type": normalized_type,
-        "priority": selected["priority"],
-        "required_teams": selected["required_teams"],
+        "priority": priority_override or selected["priority"],
+        "required_teams": teams_override or selected["required_teams"],
         "action_plan": selected["action_plan"],
         "threshold": settings.get(threshold_key),
         "requires_human_review": normalized_type not in decision_matrix,
