@@ -17,6 +17,10 @@ settings = {
             "zone": "Lobby A",
             "priority": "high",
             "severity": 0.82,
+            "incoming_signals": [
+                {"source": "CCTV", "type": "fight", "location": "Lobby A"},
+                {"source": "Manual Alert", "type": "panic", "location": "Lobby A"},
+            ],
         },
         2: {
             "id": 2,
@@ -25,6 +29,10 @@ settings = {
             "zone": "Room 101",
             "priority": "critical",
             "severity": 0.94,
+            "incoming_signals": [
+                {"source": "Fire Sensor", "type": "fire", "location": "Room 101"},
+                {"source": "CCTV", "type": "smoke", "location": "Room 101"},
+            ],
         },
         3: {
             "id": 3,
@@ -33,6 +41,10 @@ settings = {
             "zone": "Dining Hall",
             "priority": "high",
             "severity": 0.76,
+            "incoming_signals": [
+                {"source": "Manual Alert", "type": "medical", "location": "Dining Hall"},
+                {"source": "Staff Radio", "type": "medical", "location": "Dining Hall"},
+            ],
         },
     },
 }

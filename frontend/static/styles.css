@@ -104,6 +104,37 @@ h2, h3 {
   line-height: 1.6;
 }
 
+.unification-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.unified-sources {
+  margin: 0 0 14px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.signal-card {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--muted);
+}
+
+.hub-result {
+  min-height: 100%;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(110, 231, 255, 0.1);
+  border: 1px solid rgba(110, 231, 255, 0.4);
+  color: var(--text);
+  line-height: 1.5;
+  font-weight: 600;
+}
+
 .scenario-list {
   display: grid;
   gap: 12px;
@@ -199,6 +230,10 @@ h2, h3 {
 @media (max-width: 860px) {
   .hero-grid,
   .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .unification-grid {
     grid-template-columns: 1fr;
   }
 

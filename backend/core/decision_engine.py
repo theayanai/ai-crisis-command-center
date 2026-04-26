@@ -10,7 +10,7 @@ def decide_action(incident_type: str, settings: dict) -> dict:
                 "Isolate the lobby area",
                 "Notify operations channel",
             ],
-            "explanation": "Possible altercation detected; security team dispatched.",
+            "explanation": "Fragmented alerts were unified as a fight incident; security team dispatched.",
         },
         "fire": {
             "priority": "critical",
@@ -20,7 +20,7 @@ def decide_action(incident_type: str, settings: dict) -> dict:
                 "Dispatch fire response team",
                 "Open safe exit path",
             ],
-            "explanation": "Fire event detected; evacuation and fire response activated.",
+            "explanation": "Fragmented alerts were unified as a fire incident; evacuation and fire response activated.",
         },
         "medical": {
             "priority": "high",
@@ -30,7 +30,7 @@ def decide_action(incident_type: str, settings: dict) -> dict:
                 "Clear access path",
                 "Prepare ambulance handoff",
             ],
-            "explanation": "Medical emergency detected; medical team dispatched.",
+            "explanation": "Fragmented alerts were unified as a medical incident; medical team dispatched.",
         },
     }
 

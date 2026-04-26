@@ -34,7 +34,13 @@ function renderScenarios() {
 
 function renderResponse(response) {
   document.getElementById('incident-title').textContent = response.incident.title;
-  document.getElementById('incident-meta').textContent = `${response.incident.type.toUpperCase()} · ${response.incident.zone} · Priority ${response.decision.priority}`;
+  document.getElementById('incident-meta').textContent = `${response.signal_unification.unified_incident_type.toUpperCase()} · ${response.incident.zone} · Priority ${response.decision.priority}`;
+
+  document.getElementById('unified-sources').textContent = `Unified from ${response.signal_unification.source_count} sources -> ${response.signal_unification.source_label}`;
+  document.getElementById('fragmented-list').innerHTML = response.signal_unification.before
+    .map((entry) => `<div class="signal-card">${escapeText(entry)}</div>`)
+    .join('');
+  document.getElementById('unified-result').textContent = response.signal_unification.after;
 
   const alertPanel = document.getElementById('alert-panel');
   alertPanel.style.borderColor = response.decision.priority === 'critical' ? 'rgba(251, 113, 133, 0.5)' : 'rgba(110, 231, 255, 0.3)';

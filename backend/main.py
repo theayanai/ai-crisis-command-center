@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from backend.config import settings
 from backend.core.decision_engine import decide_action
 from backend.core.incident_simulator import sample_incidents
+from backend.core.orchestration_engine import orchestrate, summarize_sources
 from backend.core.routing_engine import generate_route, route_staff
 from backend.services.alert_service import create_alert
 from backend.services.staff_service import get_staff_data
@@ -45,24 +46,40 @@ def orchestrate_incident(incident_id: int):
     if incident is None:
         raise HTTPException(status_code=404, detail="Incident not found")
 
-    decision = decide_action(incident["type"], settings)
+    incoming_signals = incident.get("incoming_signals", [])
+    unified_type = orchestrate(incoming_signals)
+    source_summary = summarize_sources(incoming_signals)
+
+    decision = decide_action(unified_type, settings)
     staff = get_staff_data()
     assigned_staff = route_staff(staff, incident["zone"], decision["required_teams"])
-    response_route = generate_route(incident["type"], settings)
+    response_route = generate_route(unified_type, settings)
 
     timeline = [
-        {"stage": "Incident detected", "status": "complete", "detail": incident["title"]},
+        {"stage": "Signals received", "status": "complete", "detail": f"{len(incoming_signals)} fragmented inputs captured"},
+        {"stage": "Incident unified", "status": "complete", "detail": f"AI hub classified incident as {unified_type.upper()}"},
         {"stage": "Staff assigned", "status": "active", "detail": f"{len(assigned_staff)} nearest available staff selected"},
-        {"stage": "Response active", "status": "pending", "detail": "Unified command coordination in progress"},
+        {"stage": "Response active", "status": "pending", "detail": "Structured response now coordinated from one command layer"},
     ]
 
     response = {
         "incident": incident,
         "alert": create_alert(f"{incident['title']} - {incident['zone']}", level=decision["priority"]),
         "decision": decision,
+        "incoming_signals": incoming_signals,
+        "signal_unification": {
+            "unified_incident_type": unified_type,
+            "source_count": source_summary["count"],
+            "source_label": source_summary["label"],
+            "before": [
+                f"{signal.get('source', 'Unknown')} -> {str(signal.get('type', 'unknown')).upper()} @ {signal.get('location', incident['zone'])}"
+                for signal in incoming_signals
+            ],
+            "after": f"AI HUB -> Incident classified: {unified_type.upper()}",
+        },
         "assigned_staff": assigned_staff,
         "route": {
-            "name": f"{incident['type'].title()} response path",
+            "name": f"{unified_type.title()} response path",
             "steps": response_route,
         },
         "action_plan": decision["action_plan"],
