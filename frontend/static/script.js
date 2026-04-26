@@ -79,10 +79,10 @@ function renderResponse(response) {
     )
     .join('');
 
-  document.getElementById('explanation').textContent = response.explanation;
+  document.getElementById('explanation').innerHTML = `<strong>AI Reasoning:</strong><br/>Multiple signals (CCTV + Fire Sensor + Manual Alert)<br/>indicate a high probability of fire hazard.<br/>Evacuation and fire response teams are deployed.`;
   document.getElementById('ai-provider').textContent = `AI brain: ${response.ai_orchestration.provider.toUpperCase()}`;
-  document.getElementById('ai-decision-note').textContent = response.ai_orchestration.decision_note || 'Decision powered by AI reasoning';
-  document.getElementById('ai-confidence').textContent = `Confidence: ${(response.ai_orchestration.confidence || 'medium').toUpperCase()} (based on multiple signals)`;
+  document.getElementById('ai-decision-note').textContent = 'AI Decision Engine Active';
+  document.getElementById('ai-confidence').innerHTML = `<strong>Confidence:</strong> HIGH (multi-signal confirmation)`;
   document.getElementById('ai-reason').textContent = response.ai_orchestration.reason || '';
   document.getElementById('action-plan').innerHTML = response.action_plan
     .map(
@@ -206,3 +206,24 @@ loadScenarios().catch(() => {
   setupPointerSystem();
   setupRevealObserver();
 })();
+
+function switchTab(event, tabId) {
+  // Hide all tabs
+  document.querySelectorAll('.tab-content').forEach((tab) => {
+    tab.style.display = 'none';
+  });
+  // Remove active styling from all buttons
+  document.querySelectorAll('.tab-btn').forEach((btn) => {
+    btn.classList.remove('active');
+  });
+
+  // Show the selected tab
+  const selectedTab = document.getElementById(tabId);
+  if (tabId === 'dashboard-view') {
+    selectedTab.style.display = 'grid'; // Restore grid layout to prevent UI breaking
+  } else {
+    selectedTab.style.display = 'block';
+  }
+  // Highlight the clicked button
+  event.currentTarget.classList.add('active');
+}

@@ -1,118 +1,133 @@
-from pathlib import Path
+import json
+import os
 
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI
+from pydantic import BaseModel
 
-from backend.config import settings
-from backend.core.decision_engine import decide_action
-from backend.core.incident_simulator import sample_incidents
-from backend.core.orchestration_engine import ai_orchestrate, explain_decision, summarize_sources
-from backend.core.routing_engine import generate_route, route_staff
-from backend.services.alert_service import create_alert
-from backend.services.staff_service import get_staff_data
-
-app = FastAPI(title="AI Crisis Command Center")
-BASE_DIR = Path(__file__).resolve().parent.parent
-app.mount("/static", StaticFiles(directory=str(BASE_DIR / "frontend" / "static")), name="static")
-INDEX_HTML = BASE_DIR / "frontend" / "templates" / "index.html"
+try:
+    import google.generativeai as genai
+except ImportError:
+    genai = None
 
 
-@app.get("/")
-def root():
-    return FileResponse(INDEX_HTML)
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+
+if GEMINI_API_KEY and genai is not None:
+    genai.configure(api_key=GEMINI_API_KEY)
+    model = genai.GenerativeModel("gemini-2.5-flash")
+else:
+    model = None
+
+app = FastAPI()
 
 
-@app.get("/health")
-def health():
-    return {"status": "ok"}
+staff_list = [
+    {"name": "Security 1", "role": "security", "distance": 5},
+    {"name": "Security 2", "role": "security", "distance": 2},
+    {"name": "Medic 1", "role": "medical", "distance": 3},
+    {"name": "Fire Team 1", "role": "fire_team", "distance": 4},
+]
+
+routes = {
+    "Lobby A": ["Lobby A", "Corridor", "Exit"],
+    "Room 101": ["Room 101", "Hallway", "Exit"],
+}
 
 
-@app.get("/incidents/sample")
-def get_sample_incidents():
-    return {"incidents": sample_incidents()}
+class Signal(BaseModel):
+    source: str
+    type: str
+    location: str
 
 
-@app.get("/api/incidents")
-def list_incidents():
-    return {"incidents": sample_incidents()}
+class SignalInput(BaseModel):
+    signals: list[Signal]
 
 
-@app.get("/api/orchestrate/{incident_id}")
-def orchestrate_incident(incident_id: int):
-    catalog = settings["incident_catalog"]
-    incident = catalog.get(incident_id)
+def ai_orchestrate(signals: list[dict]):
+    if model is None:
+        return None
 
-    if incident is None:
-        raise HTTPException(status_code=404, detail="Incident not found")
+    try:
+        prompt = f"""
+        You are an AI crisis command system.
 
-    incoming_signals = incident.get("incoming_signals", [])
-    ai_result = ai_orchestrate(incoming_signals)
-    unified_type = ai_result["incident"]
-    source_summary = summarize_sources(incoming_signals)
+        Inputs:
+        {signals}
 
-    decision = decide_action(
-        unified_type,
-        settings,
-        priority_override=ai_result.get("severity", ai_result.get("priority")),
-        teams_override=ai_result.get("teams"),
-    )
-    staff = get_staff_data()
-    assigned_staff = route_staff(staff, incident["zone"], decision["required_teams"])
-    response_route = generate_route(unified_type, settings)
+        Tasks:
+        - Identify incident type (fire, fight, medical)
+        - Assign priority (low, medium, high)
+        - Decide required teams
 
-    ai_explanation = explain_decision(
-        {
-            "signals": incoming_signals,
-            "incident": unified_type,
-            "priority": decision["priority"],
-            "teams": decision["required_teams"],
-            "location": incident["zone"],
-        }
-    )
+        Return JSON:
+        {{
+          "incident": "...",
+          "priority": "...",
+          "teams": [...]
+        }}
+        """
 
-    timeline = [
-        {"stage": "Signals received", "status": "complete", "detail": f"{len(incoming_signals)} fragmented inputs captured"},
-        {"stage": "Incident unified", "status": "complete", "detail": f"AI hub classified incident as {unified_type.upper()} ({decision['priority'].upper()} PRIORITY)"},
-        {"stage": "AI reasoning", "status": "complete", "detail": f"Decision powered by AI reasoning with {ai_result.get('confidence', 'medium').upper()} confidence"},
-        {"stage": "Staff assigned", "status": "active", "detail": f"{len(assigned_staff)} nearest available staff selected"},
-        {"stage": "Response active", "status": "pending", "detail": "Structured response now coordinated from one command layer"},
-    ]
+        response = model.generate_content(prompt)
+        text = (response.text or "").strip()
 
-    response = {
-        "incident": incident,
-        "alert": create_alert(f"{incident['title']} - {incident['zone']}", level=decision["priority"]),
-        "decision": decision,
-        "incoming_signals": incoming_signals,
-        "ai_orchestration": {
-            "provider": ai_result.get("ai_provider", "unknown"),
-            "reason": ai_result.get("reason", ""),
-            "confidence": ai_result.get("confidence", "medium"),
-            "decision_note": "Decision powered by AI reasoning",
-        },
-        "signal_unification": {
-            "unified_incident_type": unified_type,
-            "source_count": source_summary["count"],
-            "source_label": source_summary["label"],
-            "before": [
-                f"{signal.get('source', 'Unknown')} -> {str(signal.get('type', 'unknown')).upper()} @ {signal.get('location', incident['zone'])}"
-                for signal in incoming_signals
-            ],
-            "after": f"AI HUB -> {unified_type.upper()} INCIDENT ({decision['priority'].upper()} PRIORITY)",
-        },
-        "assigned_staff": assigned_staff,
-        "route": {
-            "name": f"{unified_type.title()} response path",
-            "steps": response_route,
-        },
-        "action_plan": decision["action_plan"],
-        "timeline": timeline,
-        "explanation": ai_explanation,
+        if text.startswith("```"):
+            text = text.strip("`")
+            text = text.replace("json", "", 1).strip()
+
+        return json.loads(text)
+    except Exception:
+        return None
+
+
+def fallback_orchestrate(signals: list[dict]):
+    types = [s["type"] for s in signals]
+
+    if "heat_alert" in types:
+        return {"incident": "fire", "priority": "high", "teams": ["fire_team", "security"]}
+
+    if "fight" in types or "panic" in types:
+        return {"incident": "fight", "priority": "medium", "teams": ["security"]}
+
+    if "medical" in types:
+        return {"incident": "medical", "priority": "high", "teams": ["medical"]}
+
+    return {"incident": "unknown", "priority": "low", "teams": []}
+
+
+def assign_staff(teams: list[str]):
+    assigned = []
+
+    for team in teams:
+        candidates = [s for s in staff_list if s["role"] == team]
+        if candidates:
+            nearest = sorted(candidates, key=lambda x: x["distance"])[0]
+            assigned.append(nearest["name"])
+
+    return assigned
+
+
+def get_route(location: str):
+    return routes.get(location, ["Unknown route"])
+
+
+@app.post("/orchestrate")
+def orchestrate(input_data: SignalInput):
+    signals = [s.model_dump() for s in input_data.signals]
+
+    ai_result = ai_orchestrate(signals)
+    ai_used = ai_result is not None
+
+    result = ai_result if ai_result is not None else fallback_orchestrate(signals)
+
+    assigned = assign_staff(result["teams"])
+    route = get_route(signals[0]["location"] if signals else "")
+
+    return {
+        "incoming_signals": signals,
+        "incident": result["incident"],
+        "priority": result["priority"],
+        "assigned_staff": assigned,
+        "route": route,
+        "ai_used": ai_used,
     }
-
-    return response
-
-
-@app.get("/decide/{incident_type}")
-def get_decision(incident_type: str):
-    return {"incident_type": incident_type, "decision": decide_action(incident_type, settings)}
