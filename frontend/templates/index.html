@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Crisis Command Center</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <main class="dashboard">
+    <section class="hero hero-grid">
+      <div>
+        <p class="eyebrow">Multimodal safety OS</p>
+        <h1>AI Crisis Command Center</h1>
+        <p class="summary">A centralized orchestration hub that unifies simulated incident inputs, staff routing, response actions, and evacuation guidance into one deterministic command layer.</p>
+      </div>
+      <div class="selector panel panel-compact">
+        <h2>Simulated incidents</h2>
+        <div id="scenario-list" class="scenario-list"></div>
+      </div>
+    </section>
+
+    <section class="grid">
+      <article class="panel alert-panel" id="alert-panel">
+        <h2>Alert</h2>
+        <p class="panel-label">What happened and where</p>
+        <h3 id="incident-title">Loading incident...</h3>
+        <p id="incident-meta"></p>
+      </article>
+
+      <article class="panel">
+        <h2>Assigned responders</h2>
+        <div id="responder-list" class="card-list"></div>
+      </article>
+
+      <article class="panel">
+        <h2>Route / path to follow</h2>
+        <div id="route-panel" class="route-box"></div>
+      </article>
+
+      <article class="panel">
+        <h2>Timeline</h2>
+        <div id="timeline-list" class="timeline-list"></div>
+      </article>
+
+      <article class="panel full-span">
+        <h2>AI-style explanation</h2>
+        <p id="explanation" class="explanation"></p>
+        <div id="action-plan" class="action-plan"></div>
+      </article>
+    </section>
+  </main>
+  <script src="/static/script.js"></script>
+</body>
+</html>

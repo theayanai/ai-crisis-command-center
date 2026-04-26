@@ -1,0 +1,17 @@
+[
+  {
+    "name": "Alex",
+    "role": "security",
+    "location": {"zone": "A1"}
+  },
+  {
+    "name": "Jordan",
+    "role": "medical",
+    "location": {"zone": "C3"}
+  },
+  {
+    "name": "Taylor",
+    "role": "fire",
+    "location": {"zone": "B2"}
+  }
+]

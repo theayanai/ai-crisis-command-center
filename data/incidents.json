@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1,
+    "type": "fight",
+    "zone": "A1",
+    "severity": 0.82
+  },
+  {
+    "id": 2,
+    "type": "fire",
+    "zone": "B2",
+    "severity": 0.91
+  },
+  {
+    "id": 3,
+    "type": "medical",
+    "zone": "C3",
+    "severity": 0.76
+  }
+]
