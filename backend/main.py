@@ -135,13 +135,13 @@ def ai_orchestrate(signals: list[dict]):
 def fallback_orchestrate(signals: list[dict]):
     types = [s["type"] for s in signals]
 
-    if "heat_alert" in types:
+    if "heat_alert" in types or "fire" in types or "smoke" in types:
         return {
             "incident": "fire",
             "severity": 9,
             "impact": "multi-person",
             "teams": ["fire_team", "security"],
-            "reason": "Heat alert combined with activity signals suggests immediate fire escalation risk.",
+            "reason": "Fire detection signals suggest immediate fire escalation risk.",
         }
 
     if "fight" in types or "panic" in types:

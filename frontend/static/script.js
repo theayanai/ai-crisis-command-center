@@ -69,15 +69,9 @@ function openSimulator(incidentId) {
   state.currentView = 'simulator';
   state.activeIncidentId = String(incidentId);
   
-  // Hide picker, show dashboard
+  // Hide picker, show loading overlay
   document.getElementById('simulator-picker').classList.remove('active');
-  document.getElementById('dashboard').classList.add('active');
-  document.getElementById('main-header').style.background = 'linear-gradient(90deg, var(--bg-secondary), var(--bg-tertiary))';
-  document.getElementById('back-btn').style.display = 'block';
-  document.getElementById('header-tabs').style.display = 'flex';
-  
-  // Show "Test Other Scenarios" button
-  document.getElementById('test-scenarios-card').style.display = 'block';
+  document.getElementById('loading-overlay').style.display = 'flex';
   
   // Load the simulator
   loadOrchestration(incidentId);
@@ -105,7 +99,8 @@ function renderResponse(response) {
   // Update main incident info
   document.getElementById('incident-title').textContent = response.incident.title;
   document.getElementById('incident-location').textContent = escapeText(response.incident.zone);
-  document.getElementById('incident-type').textContent = escapeText(response.signal_unification.unified_incident_type);
+  const incidentType = response.signal_unification?.unified_incident_type || response.incident?.type || 'unknown';
+  document.getElementById('incident-type').textContent = escapeText(incidentType);
   document.getElementById('severity-level').textContent = severity + '/10';
   document.getElementById('impact-level').textContent = escapeText(impact);
   
@@ -233,8 +228,31 @@ async function loadOrchestration(incidentId) {
     const payload = await response.json();
     if (loadingEl) loadingEl.style.display = 'none';
     renderResponse(payload);
+    
+    // Transition from loading overlay to dashboard with staggered animations
+    setTimeout(() => {
+      document.getElementById('loading-overlay').style.display = 'none';
+      document.getElementById('dashboard').classList.add('active');
+      document.getElementById('main-header').style.background = 'linear-gradient(90deg, var(--bg-secondary), var(--bg-tertiary))';
+      document.getElementById('back-btn').style.display = 'block';
+      document.getElementById('header-tabs').style.display = 'flex';
+      document.getElementById('test-scenarios-card').style.display = 'block';
+      
+      // Trigger staggered animations for panels
+      const panels = document.querySelectorAll('.panel-card, .action-card');
+      panels.forEach((panel, index) => {
+        panel.style.opacity = '0';
+        panel.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+          panel.style.transition = 'all 0.6s ease-out';
+          panel.style.opacity = '1';
+          panel.style.transform = 'translateY(0)';
+        }, 150 + (index * 100));
+      });
+    }, 800);
   } catch (error) {
     if (loadingEl) loadingEl.style.display = 'none';
+    document.getElementById('loading-overlay').style.display = 'none';
     document.getElementById('incident-title').textContent = 'System Unavailable';
     document.getElementById('action-status').textContent = 'Backend connection error. Try again.';
     if (briefingEl) briefingEl.textContent = 'Connection error. Please try again.';
