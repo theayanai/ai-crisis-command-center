@@ -3,128 +3,266 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI Crisis Command Center</title>
+  <title>AI Crisis Command Center | Google Solution Challenge</title>
   <link rel="stylesheet" href="/static/styles.css" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌍</text></svg>" />
 </head>
 <body>
   <div class="ai-cursor"></div>
   <div class="ai-cursor-trail"></div>
-  
-  <div class="command-tabs">
-    <button class="tab-btn active" onclick="switchTab('dashboard-view', this)">🗺️ Live Dashboard</button>
-    <button class="tab-btn" onclick="switchTab('logs-view', this)">🤖 AI Telemetry Logs</button>
-    <div class="sdg-badge">
-      🌍 SDG 11 &amp; SDG 3 Aligned System
+
+  <!-- HEADER -->
+  <header class="app-header" id="main-header">
+    <div class="header-content">
+      <div class="logo-section">
+        <button id="back-btn" class="back-button" onclick="backToSimulatorPicker()" style="display: none;">← Back</button>
+        <div class="logo-main">
+          <h1 class="logo">🛡️ AI Crisis Command Center</h1>
+          <p class="tagline">Google Solution Challenge 2026 | AI-Powered Emergency Response System</p>
+        </div>
+      </div>
+      <div class="header-status">
+        <div class="status-indicator">
+          <span class="status-dot"></span>
+          <span class="status-text">SYSTEM ACTIVE</span>
+        </div>
+        <div class="header-tabs" id="header-tabs">
+          <button class="tab-link active" onclick="switchView('dashboard')">Command Center</button>
+          <button class="tab-link" onclick="switchView('logs')">System Logs</button>
+        </div>
+      </div>
     </div>
-  </div>
+  </header>
 
-  <div id="logs-view" class="tab-content" style="display: none;">
-    <h2>Raw AI Signal Ingestion</h2>
-    <div id="raw-logs-container" class="terminal-box">
-      <p style="color: #8899aa;">&gt; System standing by for incoming telemetry...</p>
+  <!-- SIMULATOR PICKER SCREEN -->
+  <main id="simulator-picker" class="view-content active">
+    <div class="picker-container">
+      <div class="picker-hero">
+        <div class="hero-badge">🚀 GOOGLE SOLUTION CHALLENGE 2026</div>
+        <h2 class="hero-title">AI-Powered Crisis Response System</h2>
+        <p class="hero-subtitle">Select an emergency scenario to see how AI unifies fragmented signals and orchestrates rapid response</p>
+
+        <div class="feature-highlights">
+          <div class="feature-item">
+            <span class="feature-icon">🧠</span>
+            <span class="feature-text">AI Signal Fusion</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">⚡</span>
+            <span class="feature-text">Real-time Analysis</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">🎯</span>
+            <span class="feature-text">Smart Orchestration</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="picker-header">
+        <h3>🎮 Available Crisis Scenarios</h3>
+        <p>Click on any scenario to launch the AI command center</p>
+      </div>
+      <div id="simulator-list" class="simulator-grid"></div>
     </div>
-  </div>
-
-  <main id="dashboard-view" class="dashboard tab-content active-tab">
-    <section class="hero-card">
-      <div class="hero-grid">
-        <div>
-          <div class="hero-kicker">Multimodal Safety OS</div>
-          <h1 class="hero-title">Unify. Coordinate. Respond.</h1>
-          <p class="summary">A centralized orchestration hub that unifies fragmented CCTV, manual, and sensor inputs into one structured crisis response layer.</p>
-        </div>
-        <div class="hero-stats">
-          <div class="stat-box">
-            <div class="stat-label">Input channels</div>
-            <div class="stat-value">3</div>
-            <div class="stat-note">CCTV, manual alert, fire/health sensors.</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-label">AI layer</div>
-            <div class="stat-value">Gemini</div>
-            <div class="stat-note">Signal unification and explanation.</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-label">Output</div>
-            <div class="stat-value">Live</div>
-            <div class="stat-note">Staff, route, actions, timeline.</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="glass-panel control-panel reveal">
-      <div class="section-title">Operational Flow</div>
-      <div class="section-note">Keep focus on one mission: unify fragmented crisis signals into structured response.</div>
-      <div class="flow-grid">
-        <div class="flow-step"><strong>1.</strong>Pick a simulated incident.</div>
-        <div class="flow-step"><strong>2.</strong>Ingest fragmented multi-source signals.</div>
-        <div class="flow-step"><strong>3.</strong>Gemini classifies incident and priority.</div>
-        <div class="flow-step"><strong>4.</strong>System assigns staff and route deterministically.</div>
-      </div>
-      <div class="scenario-block">
-        <h2>Simulated incidents</h2>
-        <div id="scenario-list" class="scenario-list"></div>
-      </div>
-    </section>
-
-    <section class="dashboard-shell">
-      <article class="panel full-span">
-        <h2>Input Layer -> AI Orchestration Hub</h2>
-        <p class="panel-label">Before (fragmented) and after (unified structured response)</p>
-        <p id="unified-sources" class="unified-sources"></p>
-        <div class="unification-grid">
-          <div>
-            <h3>Before: Fragmented signals</h3>
-            <div id="fragmented-list" class="card-list"></div>
-          </div>
-          <div>
-            <h3>After: AI hub</h3>
-            <div id="unified-result" class="hub-result"></div>
-          </div>
-        </div>
-      </article>
-
-      <article class="panel alert-panel" id="alert-panel">
-        <h2>Alert</h2>
-        <p class="panel-label">What happened and where</p>
-        <h3 id="incident-title">Loading incident...</h3>
-        <p id="incident-meta"></p>
-      </article>
-
-      <article class="panel">
-        <h2>Assigned responders</h2>
-        <div id="responder-list" class="card-list"></div>
-      </article>
-
-      <article class="panel">
-        <h2>Route / path to follow</h2>
-        <div id="route-panel" class="route-box"></div>
-      </article>
-
-      <article class="panel">
-        <h2>Timeline</h2>
-        <div id="timeline-list" class="timeline-list"></div>
-      </article>
-
-      <article class="panel full-span">
-        <h2>AI-style explanation</h2>
-        <p id="ai-provider" class="panel-label"></p>
-        <p id="ai-decision-note" class="panel-label"></p>
-        <p id="ai-confidence" class="panel-label"></p>
-        <p id="explanation" class="explanation"></p>
-        <p id="ai-reason" class="panel-label"></p>
-        <div id="action-plan" class="action-plan"></div>
-        <div class="action-controls">
-          <button type="button" class="action-btn">Dispatch Security</button>
-          <button type="button" class="action-btn">Trigger Evacuation</button>
-          <button type="button" class="action-btn">Request Medical Team</button>
-        </div>
-        <p id="status" class="status-line">No manual action executed yet.</p>
-      </article>
-    </section>
   </main>
+
+  <!-- MAIN DASHBOARD -->
+  <main id="dashboard" class="view-content active">
+    <div class="dashboard-layout">
+      <!-- LEFT: Incident Selection & Details -->
+      <section class="left-panel">
+        <div id="test-scenarios-card" class="panel-card" style="display: none;">
+          <button class="test-scenarios-btn" onclick="backToSimulatorPicker()">
+            <span class="test-icon">🔄</span>
+            <span class="test-text">Test Other Scenarios</span>
+          </button>
+          <p class="test-hint">Click to explore different incidents</p>
+        </div>
+
+        <div class="panel-card alert-card">
+          <div class="card-header">
+            <h3>🚨 Current Incident</h3>
+            <div class="severity-indicator">
+              <span id="severity-badge" class="badge severity-low">LOW</span>
+            </div>
+          </div>
+          <h2 id="incident-title" class="incident-title">Select an incident...</h2>
+          <div class="incident-details">
+            <div class="detail-row">
+              <span class="label">📍 Location:</span>
+              <span id="incident-location" class="value">—</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">🔥 Type:</span>
+              <span id="incident-type" class="value">—</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">⚡ Severity:</span>
+              <span id="severity-level" class="value">—</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">👥 Impact:</span>
+              <span id="impact-level" class="value">—</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-card info-card">
+          <h4 class="section-title">💡 How It Works</h4>
+          <div class="how-it-works">
+            <div class="step">
+              <span class="step-number">1</span>
+              <span class="step-text">AI receives fragmented emergency signals from multiple sources</span>
+            </div>
+            <div class="step">
+              <span class="step-number">2</span>
+              <span class="step-text">Google Gemini fuses signals into unified incident understanding</span>
+            </div>
+            <div class="step">
+              <span class="step-number">3</span>
+              <span class="step-text">System automatically assigns optimal response teams</span>
+            </div>
+            <div class="step">
+              <span class="step-number">4</span>
+              <span class="step-text">Real-time coordination and route optimization</span>
+            </div>
+          </div>
+        </div>
+      </section>
+      <!-- MIDDLE: AI Analysis & Briefing -->
+      <section class="middle-panel">
+        <div class="panel-card ai-card">
+          <div class="card-header">
+            <h3>🤖 AI Orchestration Analysis</h3>
+            <span class="badge ai-source" id="ai-provider">—</span>
+          </div>
+
+          <div class="analysis-content">
+            <div class="briefing-section">
+              <h4>📋 Emergency Briefing</h4>
+              <div id="loading-indicator" class="loading-indicator" style="display: none;">
+                <div class="spinner"></div>
+                <p>🤖 AI is analyzing signals...</p>
+              </div>
+              <p id="ai-briefing" class="briefing-text">System ready. Load an incident to begin AI-powered analysis.</p>
+            </div>
+
+            <div class="decision-section">
+              <h4>🧠 AI Decision & Reasoning</h4>
+              <p id="ai-reason" class="reasoning-text">—</p>
+            </div>
+
+            <div class="confidence-section">
+              <span class="label">📢 Broadcast Status:</span>
+              <span id="broadcast-status" class="badge broadcast-off">OFF</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-card">
+          <h4 class="section-title">🔗 Signal Unification Process</h4>
+          <div class="unification-flow">
+            <div class="flow-column">
+              <span class="flow-label">📡 Before: Fragmented Signals</span>
+              <div id="fragmented-list" class="signal-list"></div>
+            </div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-column">
+              <span class="flow-label">🎯 After: AI-Unified Response</span>
+              <div id="unified-result" class="unified-display">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-card tech-card">
+          <h4 class="section-title">⚙️ Technology Stack</h4>
+          <div class="tech-stack">
+            <div class="tech-item">
+              <span class="tech-icon">🧠</span>
+              <div class="tech-info">
+                <strong>Google Gemini 2.5 Flash</strong>
+                <p>Advanced AI reasoning for incident classification</p>
+              </div>
+            </div>
+            <div class="tech-item">
+              <span class="tech-icon">🚀</span>
+              <div class="tech-info">
+                <strong>FastAPI Backend</strong>
+                <p>High-performance async API framework</p>
+              </div>
+            </div>
+            <div class="tech-item">
+              <span class="tech-icon">📊</span>
+              <div class="tech-info">
+                <strong>Real-time Signal Processing</strong>
+                <p>Multi-source data fusion and orchestration</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <!-- RIGHT: Response & Actions -->
+      <section class="right-panel">
+        <div class="panel-card action-card">
+          <h3 class="section-title">⚡ Quick Response Actions</h3>
+          <div class="action-buttons">
+            <button class="action-btn primary-btn action-btn" data-action="Dispatch Security">👮‍♂️ Dispatch Security</button>
+            <button class="action-btn secondary-btn action-btn" data-action="Trigger Evacuation">🚪 Trigger Evacuation</button>
+            <button class="action-btn tertiary-btn action-btn" data-action="Request Medical Team">🏥 Request Medical</button>
+          </div>
+          <p id="action-status" class="action-status">🎯 Ready for commands</p>
+        </div>
+
+        <div class="panel-card">
+          <h4 class="section-title">👥 Assigned Responders</h4>
+          <div id="responder-list" class="responder-grid"></div>
+        </div>
+
+        <div class="panel-card">
+          <h4 class="section-title">🗺️ Optimized Response Route</h4>
+          <div id="route-display" class="route-content">—</div>
+        </div>
+
+        <div class="panel-card">
+          <h4 class="section-title">⏱️ Response Timeline</h4>
+          <div id="timeline-list" class="timeline-list"></div>
+        </div>
+
+        <div class="panel-card impact-card">
+          <h4 class="section-title">🌍 Real-World Impact</h4>
+          <div class="impact-points">
+            <div class="impact-point">
+              <span class="impact-icon">⏰</span>
+              <span class="impact-text">Faster emergency response times</span>
+            </div>
+            <div class="impact-point">
+              <span class="impact-icon">🎯</span>
+              <span class="impact-text">Accurate incident classification</span>
+            </div>
+            <div class="impact-point">
+              <span class="impact-icon">🤝</span>
+              <span class="impact-text">Optimal resource allocation</span>
+            </div>
+            <div class="impact-point">
+              <span class="impact-icon">📉</span>
+              <span class="impact-text">Reduced response coordination errors</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- SYSTEM LOGS VIEW -->
+  <section id="logs" class="view-content">
+    <div class="logs-wrapper">
+      <h2>System Telemetry & Events Log</h2>
+      <div id="raw-logs-container" class="terminal-logs">
+        <p>&gt; System initialized. Ready for operations.</p>
+      </div>
+    </div>
+  </section>
+
   <script src="/static/script.js"></script>
 </body>
 </html>

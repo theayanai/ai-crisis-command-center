@@ -1,6 +1,7 @@
 const state = {
   scenarios: [],
   activeIncidentId: null,
+  currentView: 'picker', // 'picker' or 'simulator'
 };
 
 function escapeText(value) {
@@ -12,16 +13,48 @@ function escapeText(value) {
     .replaceAll("'", '&#39;');
 }
 
+function getSeverityBadgeClass(severity) {
+  if (severity >= 8) return 'severity-critical';
+  if (severity >= 6) return 'severity-high';
+  if (severity >= 4) return 'severity-medium';
+  return 'severity-low';
+}
+
+function getSeverityLabel(severity) {
+  if (severity >= 8) return 'CRITICAL';
+  if (severity >= 6) return 'HIGH';
+  if (severity >= 4) return 'MEDIUM';
+  return 'LOW';
+}
+
+function getIncidentEmoji(type) {
+  const emojiMap = {
+    'fire': '🔥',
+    'medical': '🏥',
+    'fragmented-signals': '🚨',
+    'composite': '🚨',
+    'fight': '⚔️',
+    'unknown': '❓'
+  };
+  return emojiMap[type] || '🔴';
+}
+
+function getSeverityDescription(score) {
+  if (score >= 9) return 'Critical - Immediate action required';
+  if (score >= 7) return 'High - Swift response needed';
+  if (score >= 5) return 'Medium - Standard procedures';
+  if (score >= 3) return 'Low - Monitor status';
+  return 'Minimal - Routine';
+}
+
 function renderScenarios() {
   const list = document.getElementById('scenario-list');
-
   list.innerHTML = state.scenarios
     .map((scenario) => {
       const activeClass = scenario.id === state.activeIncidentId ? 'is-active' : '';
       return `
         <button class="scenario-button ${activeClass}" data-incident-id="${scenario.id}">
-          <strong>${escapeText(scenario.title)}</strong>
-          <span>${escapeText(scenario.zone)} · ${escapeText(scenario.type)}</span>
+          ${escapeText(scenario.title)} · ${escapeText(scenario.zone)}
         </button>
       `;
     })
@@ -32,88 +65,165 @@ function renderScenarios() {
   });
 }
 
+function openSimulator(incidentId) {
+  state.currentView = 'simulator';
+  state.activeIncidentId = String(incidentId);
+  
+  // Hide picker, show dashboard
+  document.getElementById('simulator-picker').classList.remove('active');
+  document.getElementById('dashboard').classList.add('active');
+  document.getElementById('main-header').style.background = 'linear-gradient(90deg, var(--bg-secondary), var(--bg-tertiary))';
+  document.getElementById('back-btn').style.display = 'block';
+  document.getElementById('header-tabs').style.display = 'flex';
+  
+  // Show "Test Other Scenarios" button
+  document.getElementById('test-scenarios-card').style.display = 'block';
+  
+  // Load the simulator
+  loadOrchestration(incidentId);
+}
+
+function backToSimulatorPicker() {
+  state.currentView = 'picker';
+  state.activeIncidentId = null;
+  
+  // Show picker, hide dashboard
+  document.getElementById('dashboard').classList.remove('active');
+  document.getElementById('simulator-picker').classList.add('active');
+  document.getElementById('back-btn').style.display = 'none';
+  document.getElementById('header-tabs').style.display = 'none';
+  
+  // Hide "Test Other Scenarios" button
+  document.getElementById('test-scenarios-card').style.display = 'none';
+}
+
 function renderResponse(response) {
   const severity = Number(response.severity ?? response.decision?.severity ?? 0);
   const impact = response.impact ?? response.decision?.impact ?? 'unknown';
   const isBroadcast = Boolean(response.broadcast ?? response.decision?.broadcast);
-  const confidenceLabel = severity >= 9 ? 'VERY HIGH' : severity >= 7 ? 'HIGH' : severity >= 5 ? 'MEDIUM' : 'LOW';
-
+  
+  // Update main incident info
   document.getElementById('incident-title').textContent = response.incident.title;
-  document.getElementById('incident-meta').textContent = `${response.signal_unification.unified_incident_type.toUpperCase()} INCIDENT · ${response.incident.zone} · ${response.decision.priority.toUpperCase()} PRIORITY`;
+  document.getElementById('incident-location').textContent = escapeText(response.incident.zone);
+  document.getElementById('incident-type').textContent = escapeText(response.signal_unification.unified_incident_type);
+  document.getElementById('severity-level').textContent = severity + '/10';
+  document.getElementById('impact-level').textContent = escapeText(impact);
+  
+  // Update severity badge
+  const badge = document.getElementById('severity-badge');
+  badge.textContent = getSeverityLabel(severity);
+  badge.className = 'badge ' + getSeverityBadgeClass(severity);
 
-  document.getElementById('unified-sources').textContent = `Unified from ${response.signal_unification.source_count} sources -> ${response.signal_unification.source_label}`;
-  document.getElementById('fragmented-list').innerHTML = response.signal_unification.before
-    .map((entry) => `<div class="signal-card">${escapeText(entry)}</div>`)
-    .join('');
-  document.getElementById('unified-result').textContent = response.signal_unification.after;
+  // Update AI provider
+  document.getElementById('ai-provider').textContent = (response.ai_orchestration?.provider || 'unknown').toUpperCase();
 
-  const alertPanel = document.getElementById('alert-panel');
-  alertPanel.style.borderColor = response.decision.priority === 'critical' ? 'rgba(251, 113, 133, 0.5)' : 'rgba(110, 231, 255, 0.3)';
+  // Update briefing
+  const briefing = response.briefing || response.ai_orchestration?.reason || 'No briefing available.';
+  document.getElementById('ai-briefing').textContent = briefing;
 
-  document.getElementById('responder-list').innerHTML = response.assigned_staff.length
-    ? response.assigned_staff
-        .map(
-          (staff) => `
-            <div class="responder-card">
-              <strong>${escapeText(staff.name)}</strong>
-              <div>${escapeText(staff.role)} responder</div>
-              <div>Nearest available staff · ${escapeText(staff.location.zone)}</div>
-            </div>
-          `,
-        )
+  // Update AI reason
+  document.getElementById('ai-reason').textContent = response.ai_orchestration?.reason || 'Analyzing...';
+
+  // Update broadcast status
+  const broadcastBadge = document.querySelector('#broadcast-status');
+  if (isBroadcast) {
+    broadcastBadge.textContent = 'ON';
+    broadcastBadge.className = 'badge broadcast-on';
+  } else {
+    broadcastBadge.textContent = 'OFF';
+    broadcastBadge.className = 'badge broadcast-off';
+  }
+
+  // Update signal unification
+  document.getElementById('fragmented-list').innerHTML = (response.signal_unification?.before || [])
+    .map((entry) => `<div class="signal-item">${escapeText(entry)}</div>`)
+    .join('') || '<div class="signal-item">—</div>';
+
+  document.getElementById('unified-result').textContent = escapeText(response.signal_unification?.after || '—');
+
+  // Update responders
+  const staffList = response.assigned_staff || [];
+  document.getElementById('responder-list').innerHTML = staffList.length
+    ? staffList
+        .map((staff) => `
+          <div class="responder-item">
+            <div class="responder-name">${escapeText(staff.name)}</div>
+            <div class="responder-meta">${escapeText(staff.role)} · ${escapeText(staff.location.zone)}</div>
+          </div>
+        `)
         .join('')
-    : '<div class="responder-card">No matching available staff found.</div>';
+    : '<div class="responder-item">No staff assigned.</div>';
 
-  document.getElementById('route-panel').innerHTML = `
-    <div class="route-box">
-      <strong>${escapeText(response.route.name)}</strong>
-      <ol>
-        ${response.route.steps.map((step) => `<li>${escapeText(step)}</li>`).join('')}
-      </ol>
-    </div>
-  `;
+  // Update route
+  const route = response.route || {};
+  if (route.name) {
+    const steps = (route.steps || []).map(s => `• ${escapeText(s)}`).join('\n');
+    document.getElementById('route-display').textContent = `${escapeText(route.name)}\n\n${steps}`;
+  } else {
+    document.getElementById('route-display').textContent = '—';
+  }
 
-  document.getElementById('timeline-list').innerHTML = response.timeline
-    .map(
-      (entry) => `
-        <div class="timeline-item">
-          <span class="status-chip status-${escapeText(entry.status)}">${escapeText(entry.stage)}</span>
-          <div>${escapeText(entry.detail)}</div>
-        </div>
-      `,
-    )
+  // Update timeline
+  const timelineHtml = (response.timeline || [])
+    .map((entry) => `
+      <div class="timeline-item">
+        <div class="timeline-stage">${escapeText(entry.stage)}</div>
+        <div class="timeline-detail">${escapeText(entry.detail)}</div>
+      </div>
+    `)
     .join('');
+  document.getElementById('timeline-list').innerHTML = timelineHtml || '<div class="timeline-item">—</div>';
 
-  document.getElementById('explanation').innerHTML = `<strong>AI Briefing:</strong><br/>${escapeText(response.briefing || response.ai_orchestration.reason || 'No briefing available.').replaceAll('\n', '<br/>')}`;
-  document.getElementById('ai-provider').textContent = `AI brain: ${response.ai_orchestration.provider.toUpperCase()}`;
-  document.getElementById('ai-decision-note').textContent = `AI Decision Engine Active · Severity ${severity}/10 · Impact ${impact}`;
-  document.getElementById('ai-confidence').innerHTML = `<strong>Confidence:</strong> ${confidenceLabel} · Broadcast ${isBroadcast ? 'ON' : 'OFF'}`;
-  document.getElementById('ai-reason').textContent = response.ai_orchestration.reason || '';
-  document.getElementById('action-plan').innerHTML = response.action_plan
-    .map(
-      (step) => `
-        <div class="action-item">
-          ${escapeText(step)}
-        </div>
-      `,
-    )
-    .join('');
+  updateTelemetryLogs(response);
 }
 
 async function loadScenarios() {
-  const response = await fetch('/api/incidents');
-  const payload = await response.json();
-  state.scenarios = payload.incidents || [];
-  state.activeIncidentId = String(state.scenarios[0]?.id ?? '');
-  renderScenarios();
-  if (state.activeIncidentId) {
-    await loadOrchestration(state.activeIncidentId);
+  try {
+    const response = await fetch('/api/incidents');
+    const payload = await response.json();
+    state.scenarios = payload.incidents || [];
+    state.activeIncidentId = null;
+    renderSimulatorPicker();
+  } catch (error) {
+    console.error('Failed to load scenarios:', error);
   }
+}
+
+function renderSimulatorPicker() {
+  const list = document.getElementById('simulator-list');
+  list.innerHTML = state.scenarios
+    .map((scenario) => {
+      const severity = Number(scenario.severity ?? 0) * 10;
+      const severityClass = getSeverityBadgeClass(severity);
+      const emoji = getIncidentEmoji(scenario.type);
+      const description = getSeverityDescription(severity);
+      return `
+        <div class="simulator-card" onclick="openSimulator('${scenario.id}')" title="${description}">
+          <div class="simulator-icon">${emoji}</div>
+          <div class="simulator-content">
+            <h3 class="simulator-title">${escapeText(scenario.title)}</h3>
+            <p class="simulator-zone">📍 ${escapeText(scenario.zone)}</p>
+            <div class="severity-info">
+              <span class="badge ${severityClass}">${getSeverityLabel(severity)}</span>
+              <span class="severity-score">${Math.round(severity)}/10</span>
+              <span class="severity-hint">${description}</span>
+            </div>
+          </div>
+          <div class="simulator-arrow">→</div>
+        </div>
+      `;
+    })
+    .join('');
 }
 
 async function loadOrchestration(incidentId) {
   state.activeIncidentId = String(incidentId);
-  renderScenarios();
+
+  // Show loading indicator and update briefing
+  const briefingEl = document.getElementById('ai-briefing');
+  const loadingEl = document.getElementById('loading-indicator');
+  if (loadingEl) loadingEl.style.display = 'flex';
+  if (briefingEl) briefingEl.textContent = '🤖 AI is analyzing signals...';
 
   try {
     const response = await fetch(`/api/orchestrate/${incidentId}`);
@@ -121,28 +231,25 @@ async function loadOrchestration(incidentId) {
       throw new Error(`HTTP ${response.status}`);
     }
     const payload = await response.json();
+    if (loadingEl) loadingEl.style.display = 'none';
     renderResponse(payload);
-    updateTelemetryLogs(payload);
   } catch (error) {
-    document.getElementById('incident-title').textContent = 'Unable to orchestrate this incident';
-    document.getElementById('incident-meta').textContent = 'Backend unavailable or AI timeout occurred. Using safe standby mode.';
-    document.getElementById('status').textContent = 'System fallback active. Retry scenario.';
+    if (loadingEl) loadingEl.style.display = 'none';
+    document.getElementById('incident-title').textContent = 'System Unavailable';
+    document.getElementById('action-status').textContent = 'Backend connection error. Try again.';
+    if (briefingEl) briefingEl.textContent = 'Connection error. Please try again.';
   }
 }
 
-loadScenarios().catch(() => {
-  document.getElementById('scenario-list').innerHTML = '<div class="responder-card">Unable to load simulated incidents.</div>';
-});
-
 function setupActionButtons() {
-  const statusEl = document.getElementById('status');
+  const statusEl = document.getElementById('action-status');
 
   document.querySelectorAll('.action-btn').forEach((btn) => {
     btn.addEventListener('click', async () => {
-      const action = btn.innerText.trim();
+      const action = btn.getAttribute('data-action') || btn.innerText.trim();
 
       if (statusEl) {
-        statusEl.innerText = `${action} -> Sending...`;
+        statusEl.textContent = 'Sending...';
       }
 
       try {
@@ -153,9 +260,8 @@ function setupActionButtons() {
         });
 
         const payload = await response.json();
-
         if (statusEl) {
-          statusEl.innerText = payload.message || `${action} -> Executed`;
+          statusEl.textContent = 'Executed: ' + action;
         }
 
         updateTelemetryLogs({
@@ -165,181 +271,114 @@ function setupActionButtons() {
         });
       } catch (error) {
         if (statusEl) {
-          statusEl.innerText = `${action} -> Failed`;
+          statusEl.textContent = 'Action failed';
         }
-
-        updateTelemetryLogs({
-          event_type: 'manual_action',
-          action,
-          result: { status: 'failed', message: `${action} -> Failed` },
-        });
       }
     });
   });
-}
-
-setupActionButtons();
-
-(() => {
-  const selectRevealNodes = () =>
-    document.querySelectorAll(
-      '.hero-card, .glass-panel, .dashboard-shell, .panel, .stat-box, .flow-step, .scenario-button, .responder-card, .timeline-item, .action-item',
-    );
-
-  const setupHeroTilt = () => {
-    const hero = document.querySelector('.hero-card');
-    if (!hero) {
-      return;
-    }
-
-    const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
-
-    hero.addEventListener('mousemove', (event) => {
-      const rect = hero.getBoundingClientRect();
-      const x = (event.clientX - rect.left) / rect.width;
-      const y = (event.clientY - rect.top) / rect.height;
-
-      const tiltY = clamp((x - 0.5) * 10, -5, 5);
-      const tiltX = clamp((0.5 - y) * 8, -4, 4);
-
-      hero.style.setProperty('--tilt-x', `${tiltX}deg`);
-      hero.style.setProperty('--tilt-y', `${tiltY}deg`);
-    });
-
-    hero.addEventListener('mouseleave', () => {
-      hero.style.setProperty('--tilt-x', '0deg');
-      hero.style.setProperty('--tilt-y', '0deg');
-    });
-  };
-
-  const setupPointerSystem = () => {
-    const cursor = document.querySelector('.ai-cursor');
-    const trail = document.querySelector('.ai-cursor-trail');
-    let mouseX = window.innerWidth / 2;
-    let mouseY = window.innerHeight / 2;
-    let trailX = mouseX;
-    let trailY = mouseY;
-
-    document.addEventListener('mousemove', (event) => {
-      mouseX = event.clientX;
-      mouseY = event.clientY;
-
-      const root = document.documentElement;
-      root.style.setProperty('--pointer-x', ((mouseX / window.innerWidth) * 100).toFixed(2));
-      root.style.setProperty('--pointer-y', ((mouseY / window.innerHeight) * 100).toFixed(2));
-    });
-
-    const animateCursor = () => {
-      if (cursor) {
-        cursor.style.left = `${mouseX}px`;
-        cursor.style.top = `${mouseY}px`;
-      }
-
-      if (trail) {
-        trailX += (mouseX - trailX) * 0.15;
-        trailY += (mouseY - trailY) * 0.15;
-        trail.style.left = `${trailX}px`;
-        trail.style.top = `${trailY}px`;
-      }
-
-      requestAnimationFrame(animateCursor);
-    };
-
-    animateCursor();
-  };
-
-  const setupRevealObserver = () => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add('is-visible');
-          }
-        });
-      },
-      { threshold: 0.2, rootMargin: '0px 0px -8% 0px' },
-    );
-
-    selectRevealNodes().forEach((node) => observer.observe(node));
-  };
-
-  setupHeroTilt();
-  setupPointerSystem();
-  setupRevealObserver();
-})();
-
-function switchTab(tabId, clickedButton) {
-  // Hide all tabs safely
-  document.querySelectorAll('.tab-content').forEach((tab) => {
-    tab.style.display = 'none';
-  });
-  // Remove active styling from all buttons
-  document.querySelectorAll('.tab-btn').forEach((btn) => {
-    btn.classList.remove('active');
-  });
-
-  // Show the selected tab and restore grid layout if needed
-  const selectedTab = document.getElementById(tabId);
-  if (tabId === 'dashboard-view') {
-    selectedTab.style.display = 'grid'; // Restore grid layout to prevent UI breaking
-  } else {
-    selectedTab.style.display = 'block';
-  }
-
-  // Highlight the clicked button safely
-  if (clickedButton) {
-    clickedButton.classList.add('active');
-  }
 }
 
 function updateTelemetryLogs(data) {
-  const logContainer = document.getElementById('raw-logs-container');
-  if (!logContainer) return;
+  const container = document.getElementById('raw-logs-container');
+  if (!container) return;
 
   const timestamp = new Date().toLocaleTimeString();
-  const isActionEvent = data.event_type === 'manual_action';
+  let html = '';
 
-  if (isActionEvent) {
-    const action = escapeText(data.action || 'Unknown Action');
-    const status = escapeText(data.result?.status || 'unknown');
-    const message = escapeText(data.result?.message || 'No status message');
-
-    const actionHTML = `
+  if (data.event_type === 'manual_action') {
+    html = `
       <div class="telemetry-entry">
-        <div class="telemetry-head">[${timestamp}] ⚙️ MANUAL ACTION EVENT</div>
-        <div class="telemetry-line">>> ACTION: ${action}</div>
-        <div class="telemetry-line">>> STATUS: ${status.toUpperCase()}</div>
-        <div class="telemetry-line telemetry-muted">>> MESSAGE: ${message}</div>
+        <div class="telemetry-head">[${timestamp}] ACTION EXECUTED</div>
+        <div class="telemetry-line telemetry-muted">action: ${escapeText(data.action)}</div>
+        <div class="telemetry-line">status: ${(data.result?.status || 'success').toUpperCase()}</div>
       </div>
     `;
+  } else if (data.incident) {
+    const severity = data.severity || 0;
+    const impact = data.impact || 'unknown';
+    html = `
+      <div class="telemetry-entry">
+        <div class="telemetry-head">[${timestamp}] ORCHESTRATION COMPLETE</div>
+        <div class="telemetry-line telemetry-muted">incident: ${escapeText(data.incident.title)}</div>
+        <div class="telemetry-line">severity: ${severity}/10 | impact: ${escapeText(impact)}</div>
+        <div class="telemetry-line">ai_provider: ${(data.ai_orchestration?.provider || 'unknown').toUpperCase()}</div>
+      </div>
+    `;
+  }
 
-    logContainer.innerHTML = actionHTML + logContainer.innerHTML;
+  if (html) {
+    container.insertAdjacentHTML('afterbegin', html);
+    container.scrollTop = 0;
+  }
+}
+
+function switchView(viewId) {
+  // Hide all views
+  document.querySelectorAll('.view-content').forEach((view) => {
+    view.classList.remove('active');
+  });
+
+  // Remove active from all tabs
+  document.querySelectorAll('.tab-link').forEach((tab) => {
+    tab.classList.remove('active');
+  });
+
+  // Show selected view
+  const view = document.getElementById(viewId);
+  if (view) {
+    view.classList.add('active');
+  }
+
+  // Activate clicked tab
+  event.target.classList.add('active');
+}
+
+// Initialize
+loadScenarios().catch((error) => {
+  console.error('Initialization failed:', error);
+});
+
+setTimeout(setupActionButtons, 500);
+
+// Pointer tracking for cursor effect
+(() => {
+  const cursor = document.querySelector('.ai-cursor');
+  const trail = document.querySelector('.ai-cursor-trail');
+  if (!cursor || !trail) {
     return;
   }
 
-  const rawSignals = escapeText(JSON.stringify(data.incoming_signals || [], null, 2));
-  const aiReasoning = escapeText(JSON.stringify(data.ai_orchestration || {}, null, 2));
-  const unifiedType = escapeText((data.signal_unification?.unified_incident_type || 'UNKNOWN').toUpperCase());
-  const staffCount = Array.isArray(data.assigned_staff) ? data.assigned_staff.length : 0;
-  const severity = data.severity ?? data.decision?.severity ?? 'N/A';
-  const impact = escapeText(data.impact ?? data.decision?.impact ?? 'unknown');
-  const broadcast = (data.broadcast ?? data.decision?.broadcast) ? 'ON' : 'OFF';
+  let mouseX = 0;
+  let mouseY = 0;
+  let trailX = 0;
+  let trailY = 0;
 
-  const logHTML = `
-    <div class="telemetry-entry">
-      <div class="telemetry-head">[${timestamp}] 📡 SYSTEM TRIGGERED: Telemetry Ingestion Initiated</div>
+  document.addEventListener('mousemove', (event) => {
+    mouseX = event.clientX;
+    mouseY = event.clientY;
+  });
 
-      <div class="telemetry-line telemetry-alert">>> RAW SENSOR DATA INGESTED:</div>
-      <pre class="telemetry-block telemetry-alert">${rawSignals}</pre>
+  document.addEventListener('mousedown', () => {
+    cursor.classList.add('is-clicking');
+    trail.classList.add('is-clicking');
+  });
 
-      <div class="telemetry-line telemetry-warn">>> GEMINI NEURAL FUSION: Executing analysis...</div>
-      <pre class="telemetry-block telemetry-ok">${aiReasoning}</pre>
+  document.addEventListener('mouseup', () => {
+    cursor.classList.remove('is-clicking');
+    trail.classList.remove('is-clicking');
+  });
 
-      <div class="telemetry-line telemetry-ok">>> UNIFIED DECISION: ${unifiedType} THREAT DETECTED.</div>
-      <div class="telemetry-line telemetry-muted">>> ROUTING ENGINE: Generated ${staffCount} staff assignments with dynamic hazard bypass.</div>
-      <div class="telemetry-line telemetry-muted">>> SEVERITY: ${severity}/10 | IMPACT: ${impact} | BROADCAST: ${broadcast}</div>
-    </div>
-  `;
+  const animateCursor = () => {
+    cursor.style.left = mouseX + 'px';
+    cursor.style.top = mouseY + 'px';
 
-  logContainer.innerHTML = logHTML + logContainer.innerHTML;
-}
+    trailX += (mouseX - trailX) * 0.2;
+    trailY += (mouseY - trailY) * 0.2;
+    trail.style.left = trailX + 'px';
+    trail.style.top = trailY + 'px';
+
+    requestAnimationFrame(animateCursor);
+  };
+
+  animateCursor();
+})();
