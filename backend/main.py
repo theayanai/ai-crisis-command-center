@@ -96,6 +96,11 @@ class ActionRequest(BaseModel):
     action: str
 
 
+class ChatRequest(BaseModel):
+    message: str
+    incident_context: dict | None = None
+
+
 def ai_orchestrate(signals: list[dict]):
     if model is None:
         return None
@@ -136,6 +141,99 @@ def ai_orchestrate(signals: list[dict]):
         return json.loads(text)
     except Exception:
         return None
+
+
+def crisis_chat_response(message: str, incident_context: dict | None = None):
+    """Handle natural language chat for crisis situations"""
+    if model is None:
+        return {
+            "response": "I'm currently operating in fallback mode. For crisis assistance, please contact emergency services directly.",
+            "is_emergency": False
+        }
+
+    try:
+        # Build context-aware prompt
+        context_info = ""
+        if incident_context:
+            context_info = f"""
+            Current Incident Context:
+            - Type: {incident_context.get('type', 'Unknown')}
+            - Location: {incident_context.get('zone', 'Unknown')}
+            - Severity: {incident_context.get('severity', 'Unknown')}/10
+            - Status: {incident_context.get('status', 'Active')}
+            """
+
+        prompt = f"""
+        You are an AI Crisis Response Assistant specializing in emergency management and crisis coordination.
+
+        {context_info}
+
+        User Message: {message}
+
+        Instructions:
+        1. Provide helpful, accurate crisis response information
+        2. If the user asks about emergency procedures, give clear step-by-step guidance
+        3. If they ask about the current incident, use the context information
+        4. For general questions, be informative but crisis-focused
+        5. Always prioritize safety and recommend professional emergency services when appropriate
+        6. Be concise but thorough
+        7. Use a calm, professional, and supportive tone
+
+        Detect if this is an emergency:
+        - If the user indicates immediate danger, injury, or urgent need for help, set is_emergency to true
+        - Otherwise, set is_emergency to false
+
+        Return your response in this JSON format:
+        {{
+            "response": "Your helpful response here",
+            "is_emergency": true/false,
+            "suggested_actions": ["action1", "action2"] if applicable,
+            "urgency_level": "low/medium/high/critical"
+        }}
+        """
+
+        response = model.generate_content(
+            prompt,
+            request_options={"timeout": 10},
+        )
+        text = (response.text or "").strip()
+
+        # Clean up the response
+        if text.startswith("```"):
+            text = text.strip("`")
+            text = text.replace("json", "", 1).strip()
+        if text.endswith("```"):
+            text = text[:-3].strip()
+
+        result = json.loads(text)
+
+        # Ensure required fields
+        if "response" not in result:
+            result["response"] = "I understand your question. Let me help you with crisis-related information."
+        if "is_emergency" not in result:
+            result["is_emergency"] = False
+        if "suggested_actions" not in result:
+            result["suggested_actions"] = []
+        if "urgency_level" not in result:
+            result["urgency_level"] = "low"
+
+        return result
+
+    except json.JSONDecodeError:
+        # If JSON parsing fails, return a simple text response
+        return {
+            "response": "I'm here to help with crisis management and emergency response. Could you please rephrase your question?",
+            "is_emergency": False,
+            "suggested_actions": [],
+            "urgency_level": "low"
+        }
+    except Exception as e:
+        return {
+            "response": "I encountered an error processing your request. Please try again or contact emergency services if this is urgent.",
+            "is_emergency": False,
+            "suggested_actions": [],
+            "urgency_level": "low"
+        }
 
 
 def fallback_orchestrate(signals: list[dict]):
@@ -430,3 +528,10 @@ def execute_action(payload: ActionRequest):
         "action": action,
         "message": f"{action} -> Executed",
     }
+
+
+@app.post("/api/chat")
+def chat_endpoint(payload: ChatRequest):
+    """Handle crisis chat requests"""
+    result = crisis_chat_response(payload.message, payload.incident_context)
+    return result

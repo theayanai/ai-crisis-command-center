@@ -306,5 +306,68 @@
   </section>
 
   <script src="/static/script.js"></script>
+
+  <!-- FLOATING CHAT BUTTON -->
+  <div class="floating-chat-container">
+    <button id="chat-toggle-btn" class="chat-toggle-btn" onclick="toggleChat()">
+      <span class="chat-icon">🤖</span>
+      <span class="chat-label">AI Assistant</span>
+    </button>
+
+    <div id="chat-popup" class="chat-popup">
+      <div class="chat-header">
+        <div class="chat-title">
+          <span class="chat-avatar">🤖</span>
+          <div class="chat-title-text">
+            <h4>Crisis AI Assistant</h4>
+            <p class="chat-status">Online • Ready to help</p>
+          </div>
+        </div>
+        <button class="chat-close-btn" onclick="toggleChat()">✕</button>
+      </div>
+
+      <div id="chat-messages" class="chat-messages">
+        <div class="message ai-message">
+          <div class="message-avatar">🤖</div>
+          <div class="message-content">
+            <p>👋 Hi! I'm your AI Crisis Response Assistant. I can help you with:</p>
+            <ul class="help-list">
+              <li>🚨 Emergency procedures and safety protocols</li>
+              <li>📍 Current incident status and updates</li>
+              <li>👥 Response team coordination</li>
+              <li>❓ Any crisis-related questions</li>
+            </ul>
+            <p>How can I assist you today?</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-input-container">
+        <div class="quick-actions">
+          <button class="quick-action-btn" onclick="sendQuickMessage('What should I do in case of a fire?')">
+            🔥 Fire procedures
+          </button>
+          <button class="quick-action-btn" onclick="sendQuickMessage('What are the medical emergency steps?')">
+            🏥 Medical steps
+          </button>
+          <button class="quick-action-btn" onclick="sendQuickMessage('How do I evacuate safely?')">
+            🚪 Evacuation guide
+          </button>
+        </div>
+        <div class="input-wrapper">
+          <input
+            type="text"
+            id="chat-input"
+            class="chat-input"
+            placeholder="Ask me anything about crisis response..."
+            onkeypress="handleKeyPress(event)"
+          />
+          <button id="send-btn" class="send-btn" onclick="sendMessage()">
+            <span class="send-icon">➤</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

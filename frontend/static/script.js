@@ -2,6 +2,9 @@ const state = {
   scenarios: [],
   activeIncidentId: null,
   currentView: 'picker', // 'picker' or 'simulator'
+  chatOpen: false,
+  chatMessages: [],
+  currentIncidentContext: null,
 };
 
 function escapeText(value) {
@@ -486,3 +489,208 @@ setTimeout(setupActionButtons, 500);
 
   animateCursor();
 })();
+
+// CHAT FUNCTIONALITY
+function toggleChat() {
+  const chatPopup = document.getElementById('chat-popup');
+  const chatToggleBtn = document.getElementById('chat-toggle-btn');
+
+  state.chatOpen = !state.chatOpen;
+
+  if (state.chatOpen) {
+    chatPopup.classList.add('active');
+    chatToggleBtn.style.display = 'none';
+  } else {
+    chatPopup.classList.remove('active');
+    chatToggleBtn.style.display = 'flex';
+  }
+}
+
+function handleKeyPress(event) {
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault();
+    sendMessage();
+  }
+}
+
+function sendQuickMessage(message) {
+  const chatInput = document.getElementById('chat-input');
+  chatInput.value = message;
+  sendMessage();
+}
+
+async function sendMessage() {
+  const chatInput = document.getElementById('chat-input');
+  const sendBtn = document.getElementById('send-btn');
+  const message = chatInput.value.trim();
+
+  if (!message) return;
+
+  // Disable input while processing
+  chatInput.disabled = true;
+  sendBtn.disabled = true;
+
+  // Add user message to chat
+  addMessage(message, 'user');
+
+  // Clear input
+  chatInput.value = '';
+
+  // Show loading indicator
+  showLoadingIndicator();
+
+  try {
+    // Get current incident context if available
+    const incidentContext = state.currentIncidentContext;
+
+    // Send message to backend
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: message,
+        incident_context: incidentContext
+      }),
+    });
+
+    const data = await response.json();
+
+    // Remove loading indicator
+    removeLoadingIndicator();
+
+    // Add AI response to chat
+    addMessage(data.response, 'ai');
+
+    // Handle emergency responses
+    if (data.is_emergency) {
+      showEmergencyAlert(data);
+    }
+
+    // Show suggested actions if available
+    if (data.suggested_actions && data.suggested_actions.length > 0) {
+      showSuggestedActions(data.suggested_actions);
+    }
+
+  } catch (error) {
+    console.error('Chat error:', error);
+    removeLoadingIndicator();
+    addMessage('Sorry, I encountered an error. Please try again.', 'ai');
+  } finally {
+    // Re-enable input
+    chatInput.disabled = false;
+    sendBtn.disabled = false;
+    chatInput.focus();
+  }
+}
+
+function addMessage(content, type) {
+  const chatMessages = document.getElementById('chat-messages');
+
+  const messageDiv = document.createElement('div');
+  messageDiv.className = `message ${type}-message`;
+
+  const avatar = type === 'ai' ? '🤖' : '👤';
+
+  messageDiv.innerHTML = `
+    <div class="message-avatar">${avatar}</div>
+    <div class="message-content">
+      <p>${escapeText(content)}</p>
+    </div>
+  `;
+
+  chatMessages.appendChild(messageDiv);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+
+  // Store message in state
+  state.chatMessages.push({
+    content: content,
+    type: type,
+    timestamp: new Date()
+  });
+}
+
+function showLoadingIndicator() {
+  const chatMessages = document.getElementById('chat-messages');
+
+  const loadingDiv = document.createElement('div');
+  loadingDiv.id = 'loading-indicator';
+  loadingDiv.className = 'loading-message';
+
+  loadingDiv.innerHTML = `
+    <div class="loading-dots">
+      <div class="loading-dot"></div>
+      <div class="loading-dot"></div>
+      <div class="loading-dot"></div>
+    </div>
+    <span class="loading-text">AI is thinking...</span>
+  `;
+
+  chatMessages.appendChild(loadingDiv);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function removeLoadingIndicator() {
+  const loadingIndicator = document.getElementById('loading-indicator');
+  if (loadingIndicator) {
+    loadingIndicator.remove();
+  }
+}
+
+function showEmergencyAlert(data) {
+  const chatMessages = document.getElementById('chat-messages');
+
+  const alertDiv = document.createElement('div');
+  alertDiv.className = 'message ai-message';
+  alertDiv.style.borderLeft = '3px solid var(--accent-red)';
+
+  alertDiv.innerHTML = `
+    <div class="message-avatar">🚨</div>
+    <div class="message-content" style="background: rgba(239, 68, 68, 0.1);">
+      <p><strong>⚠️ Emergency Detected</strong></p>
+      <p>Urgency Level: ${data.urgency_level?.toUpperCase() || 'HIGH'}</p>
+      <p>Please contact emergency services immediately if you haven't already.</p>
+    </div>
+  `;
+
+  chatMessages.appendChild(alertDiv);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function showSuggestedActions(actions) {
+  const chatMessages = document.getElementById('chat-messages');
+
+  const actionsDiv = document.createElement('div');
+  actionsDiv.className = 'message ai-message';
+
+  const actionsHtml = actions.map(action =>
+    `<button class="quick-action-btn" onclick="sendQuickMessage('${escapeText(action)}')">${escapeText(action)}</button>`
+  ).join('');
+
+  actionsDiv.innerHTML = `
+    <div class="message-avatar">🤖</div>
+    <div class="message-content">
+      <p><strong>Suggested Actions:</strong></p>
+      <div class="quick-actions" style="margin-top: 8px;">
+        ${actionsHtml}
+      </div>
+    </div>
+  `;
+
+  chatMessages.appendChild(actionsDiv);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// Update incident context when incident is loaded
+const originalRenderResponse = renderResponse;
+renderResponse = function(response) {
+  // Call original function
+  originalRenderResponse(response);
+
+  // Update incident context for chat
+  state.currentIncidentContext = {
+    type: response.incident?.title || 'Unknown',
+    zone: response.incident?.zone || 'Unknown',
+    severity: response.severity || 0,
+    status: 'Active'
+  };
+};

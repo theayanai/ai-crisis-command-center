@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -29,6 +30,21 @@ else:
     model = None
 
 app = FastAPI()
+
+# Track last AI error (quota/timeout) for downstream UI decisions
+LAST_AI_ERROR: str | None = None
+
+
+def extract_json_object(text: str) -> str:
+    """Extract the first JSON object from model output, stripping code fences if present."""
+    cleaned = (text or "").strip()
+    if cleaned.startswith("```"):
+        cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned, flags=re.IGNORECASE).strip()
+    if cleaned.endswith("```"):
+        cleaned = re.sub(r"\s*```$", "", cleaned).strip()
+
+    match = re.search(r"\{.*\}", cleaned, flags=re.DOTALL)
+    return match.group(0) if match else cleaned
 
 # Hardened path calculation for production deployment
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -97,7 +113,10 @@ class ActionRequest(BaseModel):
 
 
 def ai_orchestrate(signals: list[dict], incident_context: dict = None):
+    global LAST_AI_ERROR
+    LAST_AI_ERROR = None
     if model is None:
+        LAST_AI_ERROR = "model_not_configured"
         return None
 
     try:
@@ -137,16 +156,17 @@ Be precise and varied in your responses. Each incident is unique."""
 
         response = model.generate_content(
             prompt,
-            request_options={"timeout": 8},
+            request_options={"timeout": 20},
         )
-        text = (response.text or "").strip()
-
-        if text.startswith("```"):
-            text = text.strip("`")
-            text = text.replace("json", "", 1).strip()
+        text = extract_json_object(response.text or "")
 
         return json.loads(text)
-    except Exception:
+    except Exception as e:
+        # Record error for UI to detect quota/timeout and notify users
+        try:
+            LAST_AI_ERROR = str(e)
+        except Exception:
+            LAST_AI_ERROR = "unknown_error"
         return None
 
 
@@ -283,6 +303,169 @@ def generate_briefing(result: dict, location: str, incident_type: str = None):
     return briefing
 
 
+def crisis_chat(user_query, ai_result):
+    """AI Assistant powered by Gemini to answer questions about the current crisis incident."""
+    if not ai_result or not ai_result.get("decision"):
+        return "No active incident detected."
+
+    incident_type = ai_result.get("incident", {}).get("type", "unknown") if isinstance(ai_result.get("incident"), dict) else "unknown"
+    severity = ai_result.get("decision", {}).get("severity", 0)
+    impact = ai_result.get("decision", {}).get("impact", "unknown")
+    location = ai_result.get("incident", {}).get("zone", "unknown") if isinstance(ai_result.get("incident"), dict) else "the incident zone"
+    teams = ai_result.get("assigned_staff", [])
+    briefing = ai_result.get("briefing", "Emergency incident detected")
+
+    # Use Gemini to understand user intent and generate response
+    if model:
+        try:
+            # Prepare incident context for Gemini
+            team_list = ", ".join([s.get("role", "responder") for s in teams]) if teams else "emergency responders"
+            
+            incident_context = f"""
+INCIDENT CONTEXT:
+- Type: {incident_type.upper()}
+- Severity: {severity}/10
+- Location: {location}
+- Impact: {impact}
+- Response Teams: {team_list}
+- Briefing: {briefing}
+
+USER QUERY: {user_query}
+
+Respond naturally to the user's question about this incident. Keep responses concise (1-2 sentences).
+Focus on: what's happening, severity level, location, actions to take, or responder details based on what they asked.
+Use appropriate emoji (🚨, 🔴, 🟠, 🟡, 📍, ✅, etc.) to match severity and context.
+"""
+            
+            response = model.generate_content(incident_context, generation_config={"temperature": 0.3, "max_output_tokens": 150})
+            return response.text.strip()
+        except Exception as e:
+            # Fallback to keyword matching if Gemini fails
+            return _fallback_crisis_response(user_query, incident_type, severity, impact, location, teams)
+    else:
+        # No Gemini available, use fallback
+        return _fallback_crisis_response(user_query, incident_type, severity, impact, location, teams)
+
+
+def crisis_chat_structured(message: str, incident_context: dict | None = None) -> dict:
+    """Return a structured JSON response from the chat assistant.
+
+    Keys: response (str), is_emergency (bool), suggested_actions (list), urgency_level (str)
+    """
+    # If model not configured, return clear AI-unavailable message so frontend can fall back
+    if model is None:
+        return {
+            "response": "AI services are currently unavailable (no model configured). Please follow standard safety protocols and contact emergency services if this is urgent.",
+            "is_emergency": False,
+            "suggested_actions": [],
+            "urgency_level": "unknown",
+        }
+
+    # Build a context-aware prompt requesting JSON output
+    context_lines = []
+    if incident_context:
+        context_lines.append(f"Type: {incident_context.get('type', 'Unknown')}")
+        context_lines.append(f"Location: {incident_context.get('zone', 'Unknown')}")
+        context_lines.append(f"Severity: {incident_context.get('severity', 'Unknown')}")
+
+    prompt = f"""
+You are a crisis response assistant. Use the incident context when available and the user's message to produce a concise, safety-first answer.
+
+Context:
+{chr(10).join(context_lines)}
+
+User Message: {message}
+
+Return a JSON object ONLY with the following fields:
+ - response: a short, helpful reply (1-3 sentences)
+ - is_emergency: true if the user indicates immediate danger or injury, otherwise false
+ - suggested_actions: an array of short action strings (if applicable)
+ - urgency_level: one of low, medium, high, critical
+
+If you cannot comply due to quota/timeout or the model fails, return a single short message indicating AI services are unavailable.
+"""
+
+    try:
+        response = model.generate_content(prompt, request_options={"timeout": 8})
+        text = extract_json_object(response.text or "")
+
+        # Attempt to parse JSON
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError:
+            # If the model returned plain text, return it safely
+            return {
+                "response": text or "I couldn't parse the model response. Please rephrase.",
+                "is_emergency": False,
+                "suggested_actions": [],
+                "urgency_level": "unknown",
+            }
+
+        # Normalize output
+        return {
+            "response": data.get("response", "I understand. Please follow safety protocols and contact emergency services if needed."),
+            "is_emergency": bool(data.get("is_emergency", False)),
+            "suggested_actions": data.get("suggested_actions", []) or [],
+            "urgency_level": data.get("urgency_level", "unknown"),
+        }
+
+    except Exception as exc:
+        # If we detect quota or timeout hints, return explicit unavailable message
+        msg = str(exc).lower()
+        if "quota" in msg or "rate" in msg or "limit" in msg or "timeout" in msg:
+            return {
+                "response": "AI services are currently unavailable (quota or timeout). Please follow established emergency procedures and contact responders directly.",
+                "is_emergency": False,
+                "suggested_actions": [],
+                "urgency_level": "unknown",
+            }
+
+        # Generic fallback
+        return {
+            "response": "AI services are currently unavailable. Please follow standard safety procedures and contact emergency services if urgent.",
+            "is_emergency": False,
+            "suggested_actions": [],
+            "urgency_level": "unknown",
+        }
+
+
+def _fallback_crisis_response(user_query, incident_type, severity, impact, location, teams):
+    """Fallback keyword-based response when Gemini is unavailable."""
+    query = user_query.lower()
+
+    if "what" in query and ("happen" in query or "incident" in query or "situation" in query):
+        return f"🚨 {incident_type.upper()} detected. Severity {severity}/10. Impact: {impact}. Multiple signals triggered this alert—this is a serious situation requiring immediate response."
+
+    elif "why" in query:
+        return f"Multiple fragmented signals (sensors, CCTV, manual alerts) have converged to confirm a {incident_type.upper()} incident at severity {severity}/10. This indicates a critical emergency."
+
+    elif "what should i do" in query or "action" in query or "help" in query:
+        if severity >= 9:
+            return "🔴 CRITICAL: Follow evacuation routes immediately. Assist nearby individuals. Await responder instructions. Do not re-enter hazard zones."
+        elif severity >= 7:
+            return "🟠 HIGH: Move to safe areas. Assist others if safe. Keep communication channels open for responder updates."
+        else:
+            return "🟡 MEDIUM: Stay alert. Follow building protocols. Await further instructions from responders."
+
+    elif "who" in query and ("respond" in query or "team" in query or "help" in query):
+        team_list = ", ".join([s.get("role", "responder") for s in teams]) if teams else "emergency responders"
+        return f"✅ Response team(s) assigned: {team_list}. Responders are en route to the incident location."
+
+    elif "where" in query:
+        return f"📍 Incident location: {location}. Responders are navigating optimized routes to reach this area."
+
+    elif "severity" in query or "bad" in query:
+        if severity >= 9:
+            return f"🔴 CRITICAL ({severity}/10): This is a life-threatening emergency requiring immediate large-scale response."
+        elif severity >= 7:
+            return f"🟠 HIGH ({severity}/10): Serious emergency requiring coordinated multi-team response and public alerts."
+        else:
+            return f"🟡 MEDIUM ({severity}/10): Significant incident requiring professional responder intervention."
+
+    else:
+        return f"ℹ️ Ask about what's happening, what to do, who's responding, location, or how serious this is. For real-time info, contact emergency services."
+
+
 def build_response_for_incident(incident: dict):
     incoming_signals = incident.get("incoming_signals", [])
     signal_types = [entry.get("type", "unknown") for entry in incoming_signals]
@@ -291,6 +474,7 @@ def build_response_for_incident(incident: dict):
     fallback_result = fallback_orchestrate(incoming_signals)
     result = normalize_result(ai_result, fallback_result)
     ai_used = ai_result is not None
+    ai_error = LAST_AI_ERROR
 
     teams = result.get("teams") or team_by_incident_type.get(incident.get("type"), ["security"])
     severity = result["severity"]
@@ -369,6 +553,7 @@ def build_response_for_incident(incident: dict):
         "ai_orchestration": {
             "provider": "gemini" if ai_used else "fallback",
             "reason": result["reason"],
+            "error": ai_error,
         },
         "action_plan": [
             "Lock down immediate perimeter in affected zone.",
@@ -443,3 +628,18 @@ def execute_action(payload: ActionRequest):
         "action": action,
         "message": f"{action} -> Executed",
     }
+
+
+@app.post("/api/chat")
+@app.post("/chat")
+async def chat_endpoint(payload: dict):
+    """Unified chat endpoint used by frontend. Accepts JSON:
+    { "message": "...", "incident_context": {...} }
+    Returns structured JSON from `crisis_chat_structured`.
+    """
+    message = payload.get("message") or payload.get("query") or ""
+    incident_context = payload.get("incident_context") or payload.get("ai_result") or None
+
+    result = crisis_chat_structured(message, incident_context)
+
+    return result
