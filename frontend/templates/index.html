@@ -41,7 +41,6 @@
         <div class="hero-badge">🚀 GOOGLE SOLUTION CHALLENGE 2026</div>
         <h2 class="hero-title">AI-Powered Crisis Response System</h2>
         <p class="hero-subtitle">Select an emergency scenario to see how AI unifies fragmented signals and orchestrates rapid response</p>
-
         <div class="feature-highlights">
           <div class="feature-item">
             <span class="feature-icon">🧠</span>
@@ -57,7 +56,6 @@
           </div>
         </div>
       </div>
-
       <div class="picker-header">
         <h3>🎮 Available Crisis Scenarios</h3>
         <p>Click on any scenario to launch the AI command center</p>
@@ -82,6 +80,7 @@
 
   <!-- MAIN DASHBOARD -->
   <main id="dashboard" class="view-content">
+    <div id="broadcast-banner" class="broadcast-banner" style="display:none;">🚨 BROADCAST ALERT ACTIVATED</div>
     <div class="dashboard-layout">
       <!-- LEFT: Incident Selection & Details -->
       <section class="left-panel">
@@ -92,7 +91,6 @@
           </button>
           <p class="test-hint">Click to explore different incidents</p>
         </div>
-
         <div class="panel-card alert-card">
           <div class="card-header">
             <h3>🚨 Current Incident</h3>
@@ -120,7 +118,6 @@
             </div>
           </div>
         </div>
-
         <div class="panel-card info-card">
           <h4 class="section-title">💡 How It Works</h4>
           <div class="how-it-works">
@@ -148,9 +145,11 @@
         <div class="panel-card ai-card">
           <div class="card-header">
             <h3>🤖 AI Orchestration Analysis</h3>
-            <span class="badge ai-source" id="ai-provider">—</span>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="badge ai-source" id="ai-provider">—</span>
+              <span id="ai-status" class="badge ai-active" style="display:none;">AI BRAIN ACTIVE</span>
+            </div>
           </div>
-
           <div class="analysis-content">
             <div class="briefing-section">
               <h4>📋 Emergency Briefing</h4>
@@ -160,19 +159,16 @@
               </div>
               <p id="ai-briefing" class="briefing-text">System ready. Load an incident to begin AI-powered analysis.</p>
             </div>
-
             <div class="decision-section">
               <h4>🧠 AI Decision & Reasoning</h4>
               <p id="ai-reason" class="reasoning-text">—</p>
             </div>
-
             <div class="confidence-section">
               <span class="label">📢 Broadcast Status:</span>
               <span id="broadcast-status" class="badge broadcast-off">OFF</span>
             </div>
           </div>
         </div>
-
         <div class="panel-card">
           <h4 class="section-title">🔗 Signal Unification Process</h4>
           <div class="unification-flow">
@@ -187,7 +183,6 @@
             </div>
           </div>
         </div>
-
         <div class="panel-card tech-card">
           <h4 class="section-title">⚙️ Technology Stack</h4>
           <div class="tech-stack">
@@ -226,22 +221,18 @@
           </div>
           <p id="action-status" class="action-status">🎯 Ready for commands</p>
         </div>
-
         <div class="panel-card">
           <h4 class="section-title">👥 Assigned Responders</h4>
           <div id="responder-list" class="responder-grid"></div>
         </div>
-
         <div class="panel-card">
           <h4 class="section-title">🗺️ Optimized Response Route</h4>
           <div id="route-display" class="route-content">—</div>
         </div>
-
         <div class="panel-card">
           <h4 class="section-title">⏱️ Response Timeline</h4>
           <div id="timeline-list" class="timeline-list"></div>
         </div>
-
         <div class="panel-card impact-card">
           <h4 class="section-title">🌍 Real-World Impact</h4>
           <div class="impact-points">

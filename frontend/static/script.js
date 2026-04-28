@@ -110,7 +110,13 @@ function renderResponse(response) {
   badge.className = 'badge ' + getSeverityBadgeClass(severity);
 
   // Update AI provider
-  document.getElementById('ai-provider').textContent = (response.ai_orchestration?.provider || 'unknown').toUpperCase();
+  const provider = (response.ai_orchestration?.provider || 'unknown').toUpperCase();
+  document.getElementById('ai-provider').textContent = provider;
+  // Show AI active badge when provider exists
+  const aiStatus = document.getElementById('ai-status');
+  if (aiStatus) {
+    aiStatus.style.display = 'inline-block';
+  }
 
   // Update briefing
   const briefing = response.briefing || response.ai_orchestration?.reason || 'No briefing available.';
@@ -129,12 +135,25 @@ function renderResponse(response) {
     broadcastBadge.className = 'badge broadcast-off';
   }
 
-  // Update signal unification
-  document.getElementById('fragmented-list').innerHTML = (response.signal_unification?.before || [])
-    .map((entry) => `<div class="signal-item">${escapeText(entry)}</div>`)
-    .join('') || '<div class="signal-item">—</div>';
+  // Show large broadcast banner for critical incidents
+  const banner = document.getElementById('broadcast-banner');
+  if (banner) {
+    if (severity >= 9) {
+      banner.style.display = 'block';
+    } else {
+      banner.style.display = 'none';
+    }
+  }
 
-  document.getElementById('unified-result').textContent = escapeText(response.signal_unification?.after || '—');
+  // Update signal unification
+  // Before -> After display
+  const beforeList = response.signal_unification?.before || [];
+  document.getElementById('fragmented-list').innerHTML = beforeList.length
+    ? beforeList.map((entry) => `<div class="signal-item">${escapeText(entry)}</div>`).join('')
+    : '<div class="signal-item">—</div>';
+
+  const unifiedType = response.signal_unification?.unified_incident_type || response.incident?.type || 'UNKNOWN';
+  document.getElementById('unified-result').textContent = `AI → ${unifiedType.toUpperCase()} (Severity ${severity}/10)`;
 
   // Update responders
   const staffList = response.assigned_staff || [];
@@ -168,6 +187,14 @@ function renderResponse(response) {
     `)
     .join('');
   document.getElementById('timeline-list').innerHTML = timelineHtml || '<div class="timeline-item">—</div>';
+
+  // Emphasize severity visually when critical
+  if (severity >= 9) {
+    badge.classList.add('severity-critical');
+    badge.style.boxShadow = '0 8px 28px rgba(255, 59, 59, 0.18)';
+  } else {
+    badge.style.boxShadow = '';
+  }
 
   updateTelemetryLogs(response);
 }
@@ -314,11 +341,12 @@ function updateTelemetryLogs(data) {
   } else if (data.incident) {
     const severity = data.severity || 0;
     const impact = data.impact || 'unknown';
+    const broadcastFlag = data.broadcast ? 'BROADCAST ACTIVATED' : '';
     html = `
       <div class="telemetry-entry">
         <div class="telemetry-head">[${timestamp}] ORCHESTRATION COMPLETE</div>
         <div class="telemetry-line telemetry-muted">incident: ${escapeText(data.incident.title)}</div>
-        <div class="telemetry-line">severity: ${severity}/10 | impact: ${escapeText(impact)}</div>
+        <div class="telemetry-line">severity: ${severity}/10 | impact: ${escapeText(impact)} ${broadcastFlag ? '| ' + broadcastFlag : ''}</div>
         <div class="telemetry-line">ai_provider: ${(data.ai_orchestration?.provider || 'unknown').toUpperCase()}</div>
       </div>
     `;

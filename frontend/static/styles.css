@@ -508,6 +508,34 @@ body::before {
   color: var(--accent-blue);
 }
 
+/* AI active badge */
+.ai-active {
+  background: linear-gradient(90deg, #ff7a7a, #ff3b3b);
+  color: white;
+  box-shadow: 0 6px 18px rgba(255, 59, 59, 0.18);
+}
+
+/* Broadcast banner (WOW moment) */
+.broadcast-banner {
+  width: calc(100% - 48px);
+  margin: 12px auto 0 auto;
+  padding: 14px 18px;
+  border-radius: 10px;
+  text-align: center;
+  font-weight: 800;
+  color: white;
+  background: linear-gradient(90deg, #ff4d4d, #ff8a4d);
+  box-shadow: 0 10px 30px rgba(255, 77, 77, 0.18);
+  animation: broadcastPulse 1.6s ease-in-out infinite;
+  z-index: 900;
+}
+
+@keyframes broadcastPulse {
+  0% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-4px) scale(1.02); }
+  100% { transform: translateY(0) scale(1); }
+}
+
 .broadcast-on {
   background: rgba(16, 185, 129, 0.15);
   color: var(--accent-green);
