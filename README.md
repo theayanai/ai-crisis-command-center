@@ -5,7 +5,7 @@
 ![AI](https://img.shields.io/badge/AI-Gemini-blue?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)
 
-🛡️🤖 AI-powered crisis orchestration system that transforms fragmented emergency signals into **structured, intelligent, real-time response** using Google Gemini.
+🛡️🤖 AI-powered crisis orchestration platform that transforms fragmented emergency signals into intelligent decisions, real-time response coordination, and AI-driven communication with responders.
 
 ---
 
@@ -14,10 +14,10 @@
 Aligned with:
 
 - **SDG 11 – Sustainable Cities & Communities**  
-  Smart disaster response and emergency coordination  
+  Smarter disaster response systems  
 
 - **SDG 3 – Good Health & Well-being**  
-  Faster medical response and life-saving systems  
+  Faster emergency and medical response  
 
 ---
 
@@ -25,14 +25,11 @@ Aligned with:
 
 In real-world environments (hotels, campuses, malls):
 
-- CCTV detects incidents independently  
-- Fire sensors trigger isolated alerts  
-- Manual panic signals lack coordination  
+- CCTV operates independently  
+- Fire alarms and sensors work in isolation  
+- Staff communication is fragmented  
 
-👉 These systems operate in **silos**, leading to:
-- delayed response  
-- confusion  
-- increased risk  
+👉 This leads to **slow, uncoordinated, and inefficient emergency response**
 
 ---
 
@@ -41,18 +38,17 @@ In real-world environments (hotels, campuses, malls):
 We built an **AI Crisis Command Center** that:
 
 - Aggregates multiple emergency signals  
-- Uses AI (Gemini) to understand context  
+- Uses AI (Google Gemini) for reasoning  
 - Assigns severity (1–10 scale)  
-- Determines impact (individual vs mass)  
-- Generates response plans  
-- Communicates instructions to responders  
-- Triggers broadcast alerts when needed  
+- Determines impact scope (individual vs mass)  
+- Generates real-time responder communication  
+- Automatically escalates critical situations  
 
 ---
 
 ## 🔥 Core Innovation  
 
-> ❗ We don’t detect emergencies — we **orchestrate fragmented systems into coordinated response**
+> **We don’t detect emergencies — we orchestrate fragmented systems into coordinated response using AI reasoning.**
 
 ---
 
@@ -65,7 +61,9 @@ Multi-source Signals (CCTV + Sensors + Manual Input)
                 ↓
    Incident + Severity + Impact Analysis
                 ↓
-   Response Planning + Staff Assignment
+   AI Chat + Emergency Briefing Generation
+                ↓
+   Staff Assignment + Routing Engine
                 ↓
      Broadcast & Notification System
                 ↓
@@ -79,16 +77,19 @@ Multi-source Signals (CCTV + Sensors + Manual Input)
 Gemini acts as the **decision-making brain**:
 
 - Combines multiple signals  
+- Understands context  
 - Identifies incident type  
-- Assigns severity (1–10)  
-- Determines risk level  
-- Generates human-readable explanations  
+- Assigns severity (1–10 scale)  
+- Determines impact level  
+- Generates human-like emergency communication  
+
+👉 Unlike rule-based systems, this enables **real-time reasoning and decision-making**
 
 ---
 
-## 🧠 AI Crisis Briefing (Key Feature)
+## 🤖 AI Emergency Chat (Key Feature)
 
-The system generates real-time instructions for emergency responders:
+The system includes an **AI communication layer** that interacts like a dispatcher:
 
 ```
 🚨 Emergency Briefing
@@ -110,31 +111,34 @@ Action Required:
 Immediate evacuation and containment.
 ```
 
+👉 This allows the system to **communicate clearly with responders**, not just display data.
+
 ---
 
-## 🚨 Severity Intelligence System  
+## 📊 Severity Intelligence (1–10 Scale)
 
 | Severity | Meaning |
 |--------|--------|
-| 1–3 | Individual / minor |
-| 4–6 | moderate |
-| 7–8 | serious |
-| 9–10 | critical (mass impact) |
+| 1–3 | Minor / Individual |
+| 4–6 | Moderate |
+| 7–8 | Serious |
+| 9–10 | Critical (Mass Impact) |
 
 ---
 
-## 🚨 Smart Broadcast System  
+## 🚨 Smart Escalation & Broadcast  
 
 If severity ≥ 9:
 
-- Alerts all occupants  
-- Sends emergency notifications  
-- Triggers evacuation guidance  
+- System triggers **mass alert broadcast**  
+- Notifies all occupants  
+- Sends evacuation instructions  
+- Escalates response automatically  
 
 ```
 🚨 BROADCAST ALERT ACTIVATED  
 All nearby occupants notified  
-Evacuation instructions issued  
+Emergency response escalated  
 ```
 
 ---
@@ -145,25 +149,25 @@ Evacuation instructions issued
 Combines CCTV, sensors, and manual alerts  
 
 ### 🧠 AI Decision Engine  
-Gemini-powered reasoning system  
+Gemini-powered reasoning for incident understanding  
 
-### 📊 Severity Scoring (1–10)  
-Quantifies emergency impact  
+### 📊 Severity Scoring  
+Quantifies emergency impact (1–10)  
 
-### 🗣️ AI Emergency Communication  
-Explains situation to responders  
+### 🤖 AI Chat Communication  
+Generates human-like instructions for responders  
 
-### 🚨 Intelligent Broadcast  
-Escalates alerts automatically  
+### 🚨 Smart Broadcast System  
+Automatically escalates high-risk situations  
 
 ### 👥 Smart Staff Assignment  
 Assigns nearest responders  
 
-### 🗺️ Dynamic Evacuation Routing  
-Generates fastest and safest exit paths  
+### 🗺️ Evacuation Routing  
+Computes safest and fastest exit paths  
 
 ### 📊 Unified Dashboard  
-Displays all system decisions in real time  
+Displays signals → AI decision → response  
 
 ---
 
@@ -172,61 +176,47 @@ Displays all system decisions in real time
 1. Multiple signals triggered  
 2. AI processes and identifies incident  
 3. Severity score assigned  
-4. AI generates briefing  
-5. Staff assigned + route generated  
+4. AI generates emergency briefing (chat-style)  
+5. Staff assigned and routes generated  
 6. Broadcast triggered (if critical)  
-7. Dashboard updates instantly  
+7. Dashboard updates in real time  
 
 ---
 
 ## 👥 User Testing & Iteration  
 
-We tested with 3 users:
+Tested with 3 users:
 
-### Feedback:
-- “Signal sources unclear”  
-→ Added multi-signal visualization  
+- “Signal sources unclear” → Added multi-signal display  
+- “AI not visible” → Added AI chat + explanation  
+- “Feels static” → Added interactive actions  
 
-- “AI decision unclear”  
-→ Added AI reasoning panel  
-
-- “System felt static”  
-→ Added interactive actions  
-
-### Result:
-Improved clarity, usability, and realism  
+👉 Result: Improved clarity, realism, and usability  
 
 ---
 
 ## 💻 How to Run Locally  
 
-### 1. Clone Repository
 ```bash
 git clone https://github.com/theayanai/ai-crisis-command-center.git
 cd ai-crisis-command-center
-```
-
-### 2. Install Dependencies
-```bash
 pip install -r requirements.txt
 ```
 
-### 3. Set API Key
+Set API Key:
+
 ```bash
 export GEMINI_API_KEY=your_api_key
 ```
 
-(Windows)
-```bash
-set GEMINI_API_KEY=your_api_key
-```
+Run:
 
-### 4. Run Backend
 ```bash
 python backend/main.py
 ```
 
-### 5. Open UI
+Open:
+
 ```
 http://localhost:8000
 ```
@@ -237,46 +227,46 @@ http://localhost:8000
 
 Designed for:
 
-- **Google Cloud Run** (scalable backend).
-- **Google Gemini API** (AI reasoning).
+- Google Cloud Run (scalable backend)  
+- Gemini API (AI reasoning engine)  
 
 ---
 
 ## ⚠️ Limitations  
 
-- Uses simulated inputs (no live CCTV)  
-- AI output depends on prompt quality  
-- Prototype-level system  
+- Uses simulated inputs  
+- No real CCTV integration yet  
+- Depends on prompt accuracy  
 
 ---
 
 ## 🔮 Future Improvements  
 
-- Real-time CCTV integration  
-- WhatsApp / mobile alerts  
-- Multi-location coordination  
+- Real-time video AI detection  
+- WhatsApp / SMS emergency alerts  
+- Mobile responder app  
 - Predictive risk analysis  
-- Integration with emergency services  
+- Multi-building coordination  
 
 ---
 
 ## 🏆 Why This Matters  
 
-Traditional systems fail due to fragmentation.
+Modern systems fail due to fragmentation.
 
-This project shows:
+This project proves:
 
-> 🔥 AI can transform chaos into intelligent, coordinated emergency response  
+> 🔥 AI can transform chaos into intelligent, coordinated crisis response  
 
 ---
 
 ## 👨‍💻 Developer  
 
 **Mohammed Ayan**  
-AI Systems Developer  
+AI Systems & Real-Time Platforms  
 
 ---
 
 ## ⭐ Support  
 
-If you found this useful, give a ⭐ on GitHub!
+If you found this useful, consider giving a ⭐ on GitHub!
