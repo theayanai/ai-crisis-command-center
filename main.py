@@ -34,7 +34,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = BASE_DIR / "frontend"
 TEMPLATE_PATH = FRONTEND_DIR / "templates" / "index.html"
 
-app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR / "static")), name="static")
+app.mount("/static", StaticFiles(directory="frontend"), name="static")
 
 
 staff_list = [
