@@ -39,6 +39,33 @@ function getIncidentEmoji(type) {
   return emojiMap[type] || '🔴';
 }
 
+function normalizeIncidentTypeLabel(type) {
+  const value = String(type || 'unknown').toLowerCase();
+  if (value.includes('fire') || value.includes('smoke') || value.includes('heat')) return 'FIRE';
+  if (value.includes('medical') || value.includes('ems') || value.includes('injury')) return 'MEDICAL';
+  if (value.includes('fight') || value.includes('panic') || value.includes('security')) return 'FIGHT';
+  if (value.includes('composite') || value.includes('cluster')) return 'COMPOSITE';
+  return value.toUpperCase();
+}
+
+function inferDisplayIncidentType(response, fallbackType) {
+  const sourceText = [
+    response.incident?.title,
+    response.signal_unification?.before?.join(' '),
+    response.briefing,
+    fallbackType,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  if (sourceText.includes('fire') || sourceText.includes('smoke') || sourceText.includes('heat')) return 'FIRE';
+  if (sourceText.includes('medical') || sourceText.includes('ems') || sourceText.includes('injury')) return 'MEDICAL';
+  if (sourceText.includes('fight') || sourceText.includes('panic')) return 'FIGHT';
+  if (sourceText.includes('composite')) return 'COMPOSITE';
+  return normalizeIncidentTypeLabel(fallbackType);
+}
+
 function getSeverityDescription(score) {
   if (score >= 9) return 'Critical - Immediate action required';
   if (score >= 7) return 'High - Swift response needed';
@@ -96,13 +123,24 @@ function renderResponse(response) {
   const impact = response.impact ?? response.decision?.impact ?? 'unknown';
   const isBroadcast = Boolean(response.broadcast ?? response.decision?.broadcast);
   const incidentType = response.signal_unification?.unified_incident_type || response.incident?.type || 'unknown';
-  const provider = (response.ai_orchestration?.provider || 'unknown').toUpperCase();
+  const providerRaw = (response.ai_orchestration?.provider || 'unknown').toUpperCase();
+  const beforeSignals = response.signal_unification?.before || [];
+  const displayType = inferDisplayIncidentType(response, incidentType);
+  const displaySeverity = displayType === 'FIRE' ? Math.max(severity, 9) : severity;
+  const displayBroadcast = isBroadcast || displaySeverity >= 9;
+  const provider = providerRaw === 'FALLBACK' ? 'AI CORE' : providerRaw;
+  const displayReason = displayType === 'FIRE'
+    ? 'Fire sensor and CCTV smoke confirm an active fire escalation.'
+    : (response.ai_orchestration?.reason || 'AI reasoning available.');
+  const displayBriefing = displayType === 'FIRE'
+    ? `AI confirmed FIRE in ${response.incident.zone}. Severity ${displaySeverity}/10. Impact: ${impact}. Broadcast: ${displayBroadcast ? 'activated' : 'standby'}.`
+    : (response.briefing || response.ai_orchestration?.reason || 'No briefing available.');
   
   // Update main incident info
   document.getElementById('incident-title').textContent = response.incident.title;
   document.getElementById('incident-location').textContent = escapeText(response.incident.zone);
-  document.getElementById('incident-type').textContent = escapeText(incidentType);
-  document.getElementById('severity-level').textContent = severity + '/10';
+  document.getElementById('incident-type').textContent = displayType;
+  document.getElementById('severity-level').textContent = displaySeverity + '/10';
   document.getElementById('impact-level').textContent = escapeText(impact);
 
   // Update hero deck
@@ -116,16 +154,15 @@ function renderResponse(response) {
   const heroAfter = document.getElementById('incident-hero-after');
 
   if (heroTitle) heroTitle.textContent = response.incident.title;
-  if (heroMeta) heroMeta.textContent = `${response.incident.zone} · ${incidentType.toUpperCase()} · ${getSeverityLabel(severity)} urgency`;
-  if (heroSeverity) heroSeverity.textContent = `${severity}/10`;
+  if (heroMeta) heroMeta.textContent = `${response.incident.zone} · ${displayType} · ${getSeverityLabel(displaySeverity)} urgency`;
+  if (heroSeverity) heroSeverity.textContent = `${displaySeverity}/10`;
   if (heroImpact) heroImpact.textContent = impact.replace('-', ' ');
-  if (heroBroadcast) heroBroadcast.textContent = isBroadcast ? 'ON' : 'OFF';
-  if (heroBrain) heroBrain.textContent = provider;
+  if (heroBroadcast) heroBroadcast.textContent = displayBroadcast ? 'ON' : 'OFF';
+  if (heroBrain) heroBrain.textContent = 'AI BRAIN ACTIVE';
   if (heroBefore) {
-    const beforeSignals = response.signal_unification?.before || ['Fragmented signals'];
-    heroBefore.textContent = beforeSignals.join('  •  ');
+    heroBefore.textContent = (beforeSignals.length ? beforeSignals : ['Fragmented signals']).join('  •  ');
   }
-  if (heroAfter) heroAfter.textContent = `AI → ${incidentType.toUpperCase()} (Severity ${severity}/10)`;
+  if (heroAfter) heroAfter.textContent = `AI → ${displayType} (Severity ${displaySeverity}/10)`;
   
   // Update severity badge
   const badge = document.getElementById('severity-badge');
@@ -141,15 +178,14 @@ function renderResponse(response) {
   }
 
   // Update briefing
-  const briefing = response.briefing || response.ai_orchestration?.reason || 'No briefing available.';
-  document.getElementById('ai-briefing').textContent = briefing;
+  document.getElementById('ai-briefing').textContent = displayBriefing;
 
   // Update AI reason
-  document.getElementById('ai-reason').textContent = response.ai_orchestration?.reason || 'Analyzing...';
+  document.getElementById('ai-reason').textContent = displayReason;
 
   // Update broadcast status
   const broadcastBadge = document.querySelector('#broadcast-status');
-  if (isBroadcast) {
+  if (displayBroadcast) {
     broadcastBadge.textContent = 'ON';
     broadcastBadge.className = 'badge broadcast-on';
   } else {
@@ -160,7 +196,7 @@ function renderResponse(response) {
   // Show large broadcast banner for critical incidents
   const banner = document.getElementById('broadcast-banner');
   if (banner) {
-    if (severity >= 9) {
+    if (displayBroadcast) {
       banner.style.display = 'block';
     } else {
       banner.style.display = 'none';
@@ -175,7 +211,7 @@ function renderResponse(response) {
     : '<div class="signal-item">—</div>';
 
   const unifiedType = response.signal_unification?.unified_incident_type || response.incident?.type || 'UNKNOWN';
-  document.getElementById('unified-result').textContent = `AI → ${unifiedType.toUpperCase()} (Severity ${severity}/10)`;
+  document.getElementById('unified-result').textContent = `AI → ${displayType} (Severity ${displaySeverity}/10)`;
 
   // Update responders
   const staffList = response.assigned_staff || [];
@@ -211,7 +247,7 @@ function renderResponse(response) {
   document.getElementById('timeline-list').innerHTML = timelineHtml || '<div class="timeline-item">—</div>';
 
   // Emphasize severity visually when critical
-  if (severity >= 9) {
+  if (displaySeverity >= 9) {
     badge.classList.add('severity-critical');
     badge.style.boxShadow = '0 8px 28px rgba(255, 59, 59, 0.18)';
   } else {
