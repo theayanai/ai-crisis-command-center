@@ -237,8 +237,8 @@ http://localhost:8000
 
 Designed for:
 
-- **Google Cloud Run** (scalable backend)  
-- **Google Gemini API** (AI reasoning)  
+- **Google Cloud Run** (scalable backend).
+- **Google Gemini API** (AI reasoning).
 
 ---
 
