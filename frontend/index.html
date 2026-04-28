@@ -29,6 +29,8 @@
         <div class="header-tabs" id="header-tabs">
           <button class="tab-link active" onclick="switchView('dashboard')">Command Center</button>
           <button class="tab-link" onclick="switchView('logs')">System Logs</button>
+          <button class="tab-link" onclick="switchView('impacts')">Real World Impacts</button>
+          <button class="tab-link" onclick="switchView('how-it-works')">How It Works</button>
         </div>
       </div>
     </div>
@@ -155,7 +157,7 @@
             </div>
           </div>
         </div>
-        <div class="panel-card info-card">
+        <div class="panel-card info-card" id="dashboard-how-it-works">
           <h4 class="section-title">💡 How It Works</h4>
           <div class="how-it-works">
             <div class="step">
@@ -270,7 +272,7 @@
           <h4 class="section-title">⏱️ Response Timeline</h4>
           <div id="timeline-list" class="timeline-list"></div>
         </div>
-        <div class="panel-card impact-card">
+        <div class="panel-card impact-card" id="dashboard-real-world-impact">
           <h4 class="section-title">🌍 Real-World Impact</h4>
           <div class="impact-points">
             <div class="impact-point">
@@ -301,6 +303,82 @@
       <h2>System Telemetry & Events Log</h2>
       <div id="raw-logs-container" class="terminal-logs">
         <p>&gt; System initialized. Ready for operations.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS VIEW -->
+  <section id="how-it-works" class="view-content">
+    <div class="info-wrapper">
+      <h2>💡 How It Works</h2>
+      <div class="how-it-works-full">
+        <div class="step">
+          <span class="step-number">1</span>
+          <div class="step-content">
+            <h4>Signal Reception</h4>
+            <p>AI receives fragmented emergency signals from multiple sources (sensors, CCTV, manual alerts, staff radios)</p>
+          </div>
+        </div>
+        <div class="step">
+          <span class="step-number">2</span>
+          <div class="step-content">
+            <h4>Signal Fusion & Analysis</h4>
+            <p>Google Gemini 2.5 Flash fuses signals into unified incident understanding with confidence scores</p>
+          </div>
+        </div>
+        <div class="step">
+          <span class="step-number">3</span>
+          <div class="step-content">
+            <h4>Response Orchestration</h4>
+            <p>System automatically assigns optimal response teams based on incident type and location</p>
+          </div>
+        </div>
+        <div class="step">
+          <span class="step-number">4</span>
+          <div class="step-content">
+            <h4>Real-time Coordination</h4>
+            <p>Route optimization and staff coordination with broadcast alerts for critical incidents</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- REAL WORLD IMPACTS VIEW -->
+  <section id="impacts" class="view-content">
+    <div class="impacts-wrapper">
+      <h2>🌍 Real-World Impact</h2>
+      <div class="impact-grid">
+        <div class="impact-card-large">
+          <span class="impact-icon">⏰</span>
+          <h4>Response Time</h4>
+          <p>Faster emergency response times by unifying fragmented signals within seconds instead of minutes</p>
+        </div>
+        <div class="impact-card-large">
+          <span class="impact-icon">🎯</span>
+          <h4>Accuracy</h4>
+          <p>Accurate incident classification by leveraging AI to analyze multiple sensor inputs simultaneously</p>
+        </div>
+        <div class="impact-card-large">
+          <span class="impact-icon">🤝</span>
+          <h4>Resource Allocation</h4>
+          <p>Optimal resource allocation by matching incident severity with appropriate response teams</p>
+        </div>
+        <div class="impact-card-large">
+          <span class="impact-icon">📉</span>
+          <h4>Error Reduction</h4>
+          <p>Reduced response coordination errors by eliminating manual dispatch processes</p>
+        </div>
+        <div class="impact-card-large">
+          <span class="impact-icon">🏥</span>
+          <h4>Lives Saved</h4>
+          <p>Potential to save lives through faster medical response and better incident awareness</p>
+        </div>
+        <div class="impact-card-large">
+          <span class="impact-icon">🌐</span>
+          <h4>Scalability</h4>
+          <p>Scalable solution applicable to hospitals, campuses, smart buildings, and cities</p>
+        </div>
       </div>
     </div>
   </section>

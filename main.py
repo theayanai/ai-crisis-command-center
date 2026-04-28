@@ -96,32 +96,44 @@ class ActionRequest(BaseModel):
     action: str
 
 
-def ai_orchestrate(signals: list[dict]):
+def ai_orchestrate(signals: list[dict], incident_context: dict = None):
     if model is None:
         return None
 
     try:
-        prompt = f"""
-        You are an AI crisis command system.
+        signals_detail = "\n".join([
+            f"  - {s.get('source', 'Unknown')}: {s.get('type', 'unknown')} detected @ {s.get('location', 'Unknown')}"
+            for s in signals
+        ])
+        
+        location_context = ""
+        incident_type_hint = ""
+        if incident_context:
+            location_context = f"\n\nINCIDENT LOCATION: {incident_context.get('zone', 'Unknown')}\nINCIDENT TITLE: {incident_context.get('title', 'Unknown')}"
+            incident_type_hint = f"\nKnown Incident Type: {incident_context.get('type', 'unknown').upper()}"
+        
+        prompt = f"""You are an elite AI crisis response commander. Analyze the following emergency signals and provide critical intelligence.
 
-        Inputs:
-        {signals}
+INCOMING SIGNALS:
+{signals_detail}{location_context}{incident_type_hint}
 
-        Tasks:
-                1. Identify incident (fire, fight, medical)
-                2. Assign severity (1 to 10)
-                3. Determine impact (individual or multi-person)
-                4. Decide response teams
+CRITICAL ANALYSIS REQUIRED:
+1. Synthesize fragmented signals into a unified incident classification
+2. Evaluate TRUE severity (1-10 scale, where 10 is life-threatening)
+3. Determine scope of impact (individual = single person, multi-person = affects multiple people)
+4. Recommend optimal response teams (fire_team, security, medical, or combinations)
+5. Provide concise but specific reasoning for this classification
 
-        Return JSON:
-        {{
-          "incident": "...",
-                    "severity": 1,
-                    "impact": "...",
-                    "teams": [...],
-                    "reason": "..."
-        }}
-        """
+RESPONSE FORMAT - Return ONLY valid JSON, no markdown:
+{{
+  "incident": "fire|fight|medical|composite|unknown",
+  "severity": <1-10>,
+  "impact": "individual|multi-person",
+  "teams": ["fire_team"|"security"|"medical"],
+  "reason": "Specific analysis explaining why this classification. Include signal correlation details."
+}}
+
+Be precise and varied in your responses. Each incident is unique."""
 
         response = model.generate_content(
             prompt,
@@ -251,30 +263,31 @@ def normalize_result(raw_result: dict | None, fallback_result: dict) -> dict:
     }
 
 
-def generate_briefing(result: dict, location: str):
-    return f"""
-Emergency Briefing
-
-Incident: {result['incident'].upper()}
-Location: {location}
-
-Severity: {result['severity']}/10
-Impact: {result['impact']}
-
-AI Reasoning:
-{result['reason']}
-
-Teams: {', '.join(result['teams']) if result['teams'] else 'None assigned'}
-
-Immediate action required.
-""".strip()
+def generate_briefing(result: dict, location: str, incident_type: str = None):
+    incident_type = (incident_type or result.get("incident", "unknown")).lower()
+    severity = result.get("severity", 5)
+    impact = result.get("impact", "unknown")
+    teams = result.get("teams", [])
+    reason = result.get("reason", "")
+    
+    # Dynamic briefing based on incident type
+    briefings = {
+        "fire": f"🔥 FIRE INCIDENT - {location}\nSeverity: {severity}/10 ({impact} impact)\nAI Analysis: {reason}\nResponse teams dispatched: {', '.join(teams) or 'Emergency services'}\nACTION: Immediate evacuation protocol initiated.",
+        "medical": f"🏥 MEDICAL EMERGENCY - {location}\nSeverity: {severity}/10 ({impact} impact)\nAI Analysis: {reason}\nMedical responders en route: {', '.join(teams) or 'EMT/Paramedics'}\nACTION: First aid stations standby, clear access routes.",
+        "fight": f"⚔️ ACTIVE CONFRONTATION - {location}\nSeverity: {severity}/10 ({impact} impact)\nAI Analysis: {reason}\nSecurity dispatched: {', '.join(teams) or 'Security team'}\nACTION: Secure perimeter, document incident, call authorities.",
+        "composite": f"🚨 COMPOSITE INCIDENT - {location}\nSeverity: {severity}/10 ({impact} impact)\nMultiple hazards detected. AI Analysis: {reason}\nAll-teams response: {', '.join(teams) or 'Multi-unit response'}\nACTION: Coordinated response across all departments.",
+    }
+    
+    briefing = briefings.get(incident_type, f"UNKNOWN INCIDENT - {location}\nSeverity: {severity}/10 ({impact} impact)\nAI Analysis: {reason}\nResponse teams: {', '.join(teams) or 'Standby'}\nACTION: Await further instructions.")
+    
+    return briefing
 
 
 def build_response_for_incident(incident: dict):
     incoming_signals = incident.get("incoming_signals", [])
     signal_types = [entry.get("type", "unknown") for entry in incoming_signals]
 
-    ai_result = ai_orchestrate(incoming_signals)
+    ai_result = ai_orchestrate(incoming_signals, incident_context=incident)
     fallback_result = fallback_orchestrate(incoming_signals)
     result = normalize_result(ai_result, fallback_result)
     ai_used = ai_result is not None
@@ -325,7 +338,7 @@ def build_response_for_incident(incident: dict):
         "severity": severity,
         "impact": result["impact"],
         "broadcast": broadcast,
-        "briefing": generate_briefing(result, incident.get("zone", "Unknown")),
+        "briefing": generate_briefing(result, incident.get("zone", "Unknown"), unified_incident_type),
         "assigned_staff": assigned_staff,
         "route": {
             "name": f"Primary route to {incident.get('zone', 'Unknown')}",
