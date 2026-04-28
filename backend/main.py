@@ -11,6 +11,16 @@ from dotenv import load_dotenv
 from backend.config import settings
 from backend.core.incident_simulator import sample_incidents
 
+
+app = FastAPI()
+
+# serve frontend
+app.mount("/static", StaticFiles(directory="frontend"), name="static")
+
+@app.get("/")
+def root():
+    return FileResponse("frontend/index.html")
+
 try:
     import google.generativeai as genai
 except ImportError:
