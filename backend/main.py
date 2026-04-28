@@ -11,21 +11,6 @@ from dotenv import load_dotenv
 from backend.config import settings
 from backend.core.incident_simulator import sample_incidents
 
-import uvicorn
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("backend.main:app", host="0.0.0.0", port=port)
-
-app = FastAPI()
-
-# serve frontend
-app.mount("/static", StaticFiles(directory="frontend"), name="static")
-
-@app.get("/")
-def root():
-    return FileResponse("frontend/index.html")
-
 try:
     import google.generativeai as genai
 except ImportError:
@@ -45,11 +30,17 @@ else:
 
 app = FastAPI()
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-FRONTEND_DIR = BASE_DIR / "frontend"
-TEMPLATE_PATH = FRONTEND_DIR / "templates" / "index.html"
+# Hardened path calculation for production deployment
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+FRONTEND_PATH = os.path.join(BASE_DIR, "frontend")
+INDEX_HTML_PATH = os.path.join(FRONTEND_PATH, "index.html")
 
-app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR / "static")), name="static")
+# Mount static files from frontend directory
+app.mount(
+    "/static",
+    StaticFiles(directory=FRONTEND_PATH),
+    name="static"
+)
 
 
 staff_list = [
@@ -376,9 +367,16 @@ def build_response_for_incident(incident: dict):
 
 @app.get("/")
 def index():
-    if not TEMPLATE_PATH.exists():
-        raise HTTPException(status_code=500, detail="Frontend template not found")
-    return FileResponse(str(TEMPLATE_PATH))
+    """Serve the frontend index.html with hardened path handling and debug info."""
+    if not os.path.exists(INDEX_HTML_PATH):
+        return {
+            "error": "Frontend not found",
+            "checked_path": INDEX_HTML_PATH,
+            "cwd": os.getcwd(),
+            "base_dir": BASE_DIR,
+            "frontend_path": FRONTEND_PATH,
+        }
+    return FileResponse(INDEX_HTML_PATH)
 
 
 @app.get("/api/incidents")

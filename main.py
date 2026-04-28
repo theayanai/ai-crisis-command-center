@@ -30,11 +30,17 @@ else:
 
 app = FastAPI()
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-FRONTEND_DIR = BASE_DIR / "frontend"
-TEMPLATE_PATH = FRONTEND_DIR / "templates" / "index.html"
+# Hardened path calculation for production deployment
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FRONTEND_PATH = os.path.join(BASE_DIR, "frontend")
+INDEX_HTML_PATH = os.path.join(FRONTEND_PATH, "index.html")
 
-app.mount("/static", StaticFiles(directory="frontend"), name="static")
+# Mount static files from frontend directory
+app.mount(
+    "/static",
+    StaticFiles(directory=FRONTEND_PATH),
+    name="static"
+)
 
 
 staff_list = [
@@ -361,9 +367,16 @@ def build_response_for_incident(incident: dict):
 
 @app.get("/")
 def index():
-    if not TEMPLATE_PATH.exists():
-        raise HTTPException(status_code=500, detail="Frontend template not found")
-    return FileResponse(str(TEMPLATE_PATH))
+    """Serve the frontend index.html with hardened path handling and debug info."""
+    if not os.path.exists(INDEX_HTML_PATH):
+        return {
+            "error": "Frontend not found",
+            "checked_path": INDEX_HTML_PATH,
+            "cwd": os.getcwd(),
+            "base_dir": BASE_DIR,
+            "frontend_path": FRONTEND_PATH,
+        }
+    return FileResponse(INDEX_HTML_PATH)
 
 
 @app.get("/api/incidents")
