@@ -95,14 +95,37 @@ function renderResponse(response) {
   const severity = Number(response.severity ?? response.decision?.severity ?? 0);
   const impact = response.impact ?? response.decision?.impact ?? 'unknown';
   const isBroadcast = Boolean(response.broadcast ?? response.decision?.broadcast);
+  const incidentType = response.signal_unification?.unified_incident_type || response.incident?.type || 'unknown';
+  const provider = (response.ai_orchestration?.provider || 'unknown').toUpperCase();
   
   // Update main incident info
   document.getElementById('incident-title').textContent = response.incident.title;
   document.getElementById('incident-location').textContent = escapeText(response.incident.zone);
-  const incidentType = response.signal_unification?.unified_incident_type || response.incident?.type || 'unknown';
   document.getElementById('incident-type').textContent = escapeText(incidentType);
   document.getElementById('severity-level').textContent = severity + '/10';
   document.getElementById('impact-level').textContent = escapeText(impact);
+
+  // Update hero deck
+  const heroTitle = document.getElementById('incident-hero-title');
+  const heroMeta = document.getElementById('incident-hero-meta');
+  const heroSeverity = document.getElementById('incident-hero-severity');
+  const heroImpact = document.getElementById('incident-hero-impact');
+  const heroBroadcast = document.getElementById('incident-hero-broadcast');
+  const heroBrain = document.getElementById('incident-hero-brain');
+  const heroBefore = document.getElementById('incident-hero-before');
+  const heroAfter = document.getElementById('incident-hero-after');
+
+  if (heroTitle) heroTitle.textContent = response.incident.title;
+  if (heroMeta) heroMeta.textContent = `${response.incident.zone} · ${incidentType.toUpperCase()} · ${getSeverityLabel(severity)} urgency`;
+  if (heroSeverity) heroSeverity.textContent = `${severity}/10`;
+  if (heroImpact) heroImpact.textContent = impact.replace('-', ' ');
+  if (heroBroadcast) heroBroadcast.textContent = isBroadcast ? 'ON' : 'OFF';
+  if (heroBrain) heroBrain.textContent = provider;
+  if (heroBefore) {
+    const beforeSignals = response.signal_unification?.before || ['Fragmented signals'];
+    heroBefore.textContent = beforeSignals.join('  •  ');
+  }
+  if (heroAfter) heroAfter.textContent = `AI → ${incidentType.toUpperCase()} (Severity ${severity}/10)`;
   
   // Update severity badge
   const badge = document.getElementById('severity-badge');
@@ -110,7 +133,6 @@ function renderResponse(response) {
   badge.className = 'badge ' + getSeverityBadgeClass(severity);
 
   // Update AI provider
-  const provider = (response.ai_orchestration?.provider || 'unknown').toUpperCase();
   document.getElementById('ai-provider').textContent = provider;
   // Show AI active badge when provider exists
   const aiStatus = document.getElementById('ai-status');

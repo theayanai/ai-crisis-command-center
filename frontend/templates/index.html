@@ -81,6 +81,43 @@
   <!-- MAIN DASHBOARD -->
   <main id="dashboard" class="view-content">
     <div id="broadcast-banner" class="broadcast-banner" style="display:none;">🚨 BROADCAST ALERT ACTIVATED</div>
+    <section class="incident-hero panel-card">
+      <div class="incident-hero-top">
+        <div>
+          <div class="hero-kicker">LIVE INCIDENT CORE</div>
+          <h2 id="incident-hero-title" class="incident-hero-title">AI command core waiting for signal</h2>
+          <p id="incident-hero-meta" class="incident-hero-meta">Select a scenario to activate the orchestration stack.</p>
+        </div>
+        <div class="hero-orb">
+          <span id="incident-hero-brain">AI BRAIN</span>
+        </div>
+      </div>
+      <div class="incident-hero-grid">
+        <div class="hero-stat hero-stat-severity">
+          <span class="hero-stat-label">Severity</span>
+          <strong id="incident-hero-severity">0/10</strong>
+        </div>
+        <div class="hero-stat hero-stat-impact">
+          <span class="hero-stat-label">Impact</span>
+          <strong id="incident-hero-impact">—</strong>
+        </div>
+        <div class="hero-stat hero-stat-broadcast">
+          <span class="hero-stat-label">Broadcast</span>
+          <strong id="incident-hero-broadcast">OFF</strong>
+        </div>
+      </div>
+      <div class="hero-sequence">
+        <div class="hero-sequence-before">
+          <span class="hero-sequence-label">Before</span>
+          <p id="incident-hero-before">CCTV → smoke</p>
+        </div>
+        <div class="hero-sequence-arrow">→</div>
+        <div class="hero-sequence-after">
+          <span class="hero-sequence-label">After</span>
+          <p id="incident-hero-after">AI → FIRE (Severity 9/10)</p>
+        </div>
+      </div>
+    </section>
     <div class="dashboard-layout">
       <!-- LEFT: Incident Selection & Details -->
       <section class="left-panel">
